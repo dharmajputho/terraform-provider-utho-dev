@@ -1,0 +1,79 @@
+package provider
+
+import (
+	"context"
+	"os"
+
+	"github.com/dharmajputho/terraform-provider-utho/internal/client"
+	"github.com/dharmajputho/terraform-provider-utho/internal/resources"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+type uthoProvider struct{}
+
+type uthoProviderModel struct {
+	APIKey types.String `tfsdk:"api_key"`
+}
+
+func New() func() provider.Provider {
+	return func() provider.Provider {
+		return &uthoProvider{}
+	}
+}
+
+func (p *uthoProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "utho"
+	resp.Version = "1.0.0"
+}
+
+func (p *uthoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Interact with Utho Cloud resources.",
+		Attributes: map[string]schema.Attribute{
+			"api_key": schema.StringAttribute{
+				Required:    true,
+				Sensitive:   true,
+				Description: "Utho API key. Can also be set via UTHO_API_KEY environment variable.",
+			},
+		},
+	}
+}
+
+func (p *uthoProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var config uthoProviderModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	apiKey := os.Getenv("UTHO_API_KEY")
+	if !config.APIKey.IsNull() && config.APIKey.ValueString() != "" {
+		apiKey = config.APIKey.ValueString()
+	}
+
+	if apiKey == "" {
+		resp.Diagnostics.AddError(
+			"Missing API Key",
+			"Set api_key in provider block or export UTHO_API_KEY=your-key",
+		)
+		return
+	}
+
+	uthoClient := client.NewClient(apiKey)
+	resp.DataSourceData = uthoClient
+	resp.ResourceData = uthoClient
+}
+
+func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		resources.NewCloudResource,
+	}
+}
+
+func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{}
+}
