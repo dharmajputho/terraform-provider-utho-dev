@@ -12,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+// Ensure CloudResource implements ResourceWithImportState
+var _ resource.ResourceWithImportState = &CloudResource{}
+
 type CloudResource struct {
 	client *client.Client
 }
@@ -328,4 +331,61 @@ func (r *CloudResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		resp.Diagnostics.AddError("Error deleting Utho Cloud instance", fmt.Sprintf("%s", err))
 		return
 	}
+}
+
+// ImportState allows importing existing cloud instances into Terraform state
+// Usage: terraform import utho_cloud.server 1671914
+func (r *CloudResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// req.ID is the cloudid passed by the customer
+	instance, err := r.client.GetCloud(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error importing Utho Cloud instance",
+			fmt.Sprintf("%s", err),
+		)
+		return
+	}
+
+	if instance == nil {
+		resp.Diagnostics.AddError(
+			"Cloud instance not found",
+			fmt.Sprintf("No instance found with ID: %s", req.ID),
+		)
+		return
+	}
+
+	// Write fetched data to state
+	// Optional fields will be empty — customer can fill them in .tf file
+	state := CloudResourceModel{
+		ID:           types.StringValue(instance.CloudID),
+		IP:           types.StringValue(instance.IP),
+		Status:       types.StringValue(instance.Status),
+		PowerStatus:  types.StringValue(instance.PowerStatus),
+		Hostname:     types.StringValue(instance.Hostname),
+		DCSlug:       types.StringValue(instance.DCSlug),
+		BillingCycle: types.StringValue(instance.BillingCycle),
+		CreatedAt:    types.StringValue(instance.CreatedAt),
+		// Required fields customer must add to .tf file after import
+		PlanID: types.StringValue(""),
+		Auth:   types.StringValue(""),
+		// Optional fields default to null
+		EnablePublicIP: types.StringNull(),
+		SubnetRequired: types.StringNull(),
+		CPUModel:       types.StringNull(),
+		EnableBackup:   types.StringNull(),
+		Support:        types.StringNull(),
+		Firewall:       types.StringNull(),
+		RootPassword:   types.StringNull(),
+		SSHKeys:        types.StringNull(),
+		Image:          types.StringNull(),
+		VPC:            types.StringNull(),
+		SnapshotID:     types.StringNull(),
+		BackupID:       types.StringNull(),
+		ISO:            types.StringNull(),
+		Stack:          types.StringNull(),
+		DeleteEBS:      types.BoolNull(),
+		EBS:            []EBSVolumeModel{},
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

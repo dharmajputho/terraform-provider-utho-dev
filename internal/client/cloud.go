@@ -180,3 +180,51 @@ func (c *Client) DeleteCloud(cloudID string, deleteEBS bool) error {
 
 	return nil
 }
+
+// PowerAction performs a power action on a cloud instance
+func (c *Client) PowerAction(cloudID string, action string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/%s", cloudID, action)
+	respBytes, err := c.Post(endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("power action '%s' failed: %w", action, err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse power action response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("power action failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// ListClouds returns all cloud instances in the account
+func (c *Client) ListClouds() ([]CloudInstance, error) {
+	var allInstances []CloudInstance
+	page := 1
+
+	for {
+		endpoint := fmt.Sprintf("/cloud?perpage=100&page=%d", page)
+		respBytes, err := c.Get(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list cloud instances: %w", err)
+		}
+
+		var listResp CloudListResponse
+		if err := json.Unmarshal(respBytes, &listResp); err != nil {
+			return nil, fmt.Errorf("failed to parse list response: %w", err)
+		}
+
+		allInstances = append(allInstances, listResp.Cloud...)
+
+		if page >= listResp.Meta.TotalPages || listResp.Meta.TotalPages == 0 {
+			break
+		}
+		page++
+	}
+
+	return allInstances, nil
+}

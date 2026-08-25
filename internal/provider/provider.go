@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dharmajputho/terraform-provider-utho/internal/client"
+	"github.com/dharmajputho/terraform-provider-utho/internal/datasources"
 	"github.com/dharmajputho/terraform-provider-utho/internal/resources"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -70,10 +71,13 @@ func (p *uthoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		resources.NewCloudResource,
+		resources.NewCloudResource,      // utho_cloud
+		resources.NewCloudPowerResource, // utho_cloud_power
 	}
 }
 
 func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		datasources.NewCloudsDataSource, // data.utho_clouds
+	}
 }
