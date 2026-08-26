@@ -71,8 +71,9 @@ func (p *uthoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		resources.NewCloudResource,      // utho_cloud
-		resources.NewCloudPowerResource, // utho_cloud_power
+		resources.NewCloudResource,         // utho_cloud
+		resources.NewCloudPowerResource,    // utho_cloud_power
+		resources.NewCloudFirewallResource, //utho_cloud_firewall
 	}
 }
 

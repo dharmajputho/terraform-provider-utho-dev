@@ -228,3 +228,47 @@ func (c *Client) ListClouds() ([]CloudInstance, error) {
 
 	return allInstances, nil
 }
+
+// AttachFirewall attaches a security group to a cloud instance
+func (c *Client) AttachFirewall(firewallID string, cloudID string) error {
+	endpoint := fmt.Sprintf("/firewall/%s/server/add", firewallID)
+	payload := map[string]string{
+		"cloudid": cloudID,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to attach firewall: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse attach firewall response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("attach firewall failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// DetachFirewall detaches a security group from a cloud instance
+func (c *Client) DetachFirewall(firewallID string, cloudID string) error {
+	endpoint := fmt.Sprintf("/firewall/%s/server/%s/delete", firewallID, cloudID)
+	respBytes, err := c.Delete(endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to detach firewall: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse detach firewall response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("detach firewall failed: %s", result["message"])
+	}
+
+	return nil
+}
