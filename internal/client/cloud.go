@@ -420,3 +420,69 @@ func (c *Client) UpdateEBS(cloudID string, ebsID string, bus string, diskType st
 
 	return nil
 }
+
+// ── Snapshot ──────────────────────────────────────────────────────────────
+
+// CreateSnapshot creates a snapshot of a cloud instance
+func (c *Client) CreateSnapshot(cloudID string, name string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/snapshot/create", cloudID)
+	payload := map[string]string{
+		"name": name,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to create snapshot: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse create snapshot response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("create snapshot failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// DeleteSnapshot deletes a snapshot of a cloud instance
+func (c *Client) DeleteSnapshot(cloudID string, snapshotID string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/snapshot/%s/delete", cloudID, snapshotID)
+	respBytes, err := c.Delete(endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to delete snapshot: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse delete snapshot response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("delete snapshot failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// RestoreSnapshot restores a cloud instance from a snapshot
+func (c *Client) RestoreSnapshot(cloudID string, snapshotID string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/snapshot/%s/restore", cloudID, snapshotID)
+	respBytes, err := c.Post(endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to restore snapshot: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse restore snapshot response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("restore snapshot failed: %s", result["message"])
+	}
+
+	return nil
+}

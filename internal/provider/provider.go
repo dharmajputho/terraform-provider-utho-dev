@@ -76,7 +76,7 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewCloudFirewallResource, //utho_cloud_firewall
 		resources.NewCloudStorageResource,  // utho_cloud_storage
 		resources.NewCloudEBSResource,      // utho_cloud_ebs
-
+		resources.NewCloudSnapshotResource, // utho_cloud_snapshot
 	}
 }
 
