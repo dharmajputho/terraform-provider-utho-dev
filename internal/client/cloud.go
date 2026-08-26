@@ -486,3 +486,29 @@ func (c *Client) RestoreSnapshot(cloudID string, snapshotID string) error {
 
 	return nil
 }
+
+// ── ISO ───────────────────────────────────────────────────────────────────
+
+// MountISO mounts an ISO on a cloud instance and boots from it
+func (c *Client) MountISO(cloudID string, isoName string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/mountiso", cloudID)
+	payload := map[string]string{
+		"iso": isoName,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to mount ISO: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse mount ISO response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("mount ISO failed: %s", result["message"])
+	}
+
+	return nil
+}

@@ -77,6 +77,7 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewCloudStorageResource,  // utho_cloud_storage
 		resources.NewCloudEBSResource,      // utho_cloud_ebs
 		resources.NewCloudSnapshotResource, // utho_cloud_snapshot
+		resources.NewCloudISOResource,      // utho_cloud_iso
 	}
 }
 
