@@ -272,3 +272,151 @@ func (c *Client) DetachFirewall(firewallID string, cloudID string) error {
 
 	return nil
 }
+
+// ── General Storage ───────────────────────────────────────────────────────
+
+// AddGeneralStorage adds a general disk to a cloud instance
+func (c *Client) AddGeneralStorage(cloudID string, sizeGB int) error {
+	endpoint := fmt.Sprintf("/cloud/%s/storage/add", cloudID)
+	payload := map[string]int{
+		"size": sizeGB,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to add storage: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse add storage response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("add storage failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// DeleteGeneralStorage deletes a general disk from a cloud instance
+func (c *Client) DeleteGeneralStorage(cloudID string, diskID string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/storage/%s/delete", cloudID, diskID)
+	respBytes, err := c.Delete(endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to delete storage: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse delete storage response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("delete storage failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// UpdateGeneralStorage updates a general disk on a cloud instance
+func (c *Client) UpdateGeneralStorage(cloudID string, diskID string, bus string, diskType string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/storage/%s/update", cloudID, diskID)
+	payload := map[string]string{
+		"bus":  bus,
+		"type": diskType,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to update storage: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse update storage response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("update storage failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// ── EBS Storage ───────────────────────────────────────────────────────────
+
+// AttachEBS attaches an EBS volume to a cloud instance
+func (c *Client) AttachEBS(ebsID string, cloudID string) error {
+	endpoint := fmt.Sprintf("/ebs/%s/attach", ebsID)
+	payload := map[string]string{
+		"type":       "cloud",
+		"resourceid": cloudID,
+	}
+
+	respBytes, err := c.Put(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to attach EBS: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse attach EBS response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("attach EBS failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// DetachEBS detaches an EBS volume from a cloud instance
+func (c *Client) DetachEBS(ebsID string, cloudID string) error {
+	endpoint := fmt.Sprintf("/ebs/%s/dettach", ebsID)
+	payload := map[string]string{
+		"type":       "cloud",
+		"resourceid": cloudID,
+	}
+
+	respBytes, err := c.Put(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to detach EBS: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse detach EBS response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("detach EBS failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// UpdateEBS updates an attached EBS volume on a cloud instance
+func (c *Client) UpdateEBS(cloudID string, ebsID string, bus string, diskType string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/storage/%s/update", cloudID, ebsID)
+	payload := map[string]string{
+		"bus":  bus,
+		"type": diskType,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to update EBS: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse update EBS response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("update EBS failed: %s", result["message"])
+	}
+
+	return nil
+}
