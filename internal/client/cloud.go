@@ -512,3 +512,31 @@ func (c *Client) MountISO(cloudID string, isoName string) error {
 
 	return nil
 }
+
+// ── Resize ────────────────────────────────────────────────────────────────
+
+// ResizeCloud resizes a cloud instance
+// resizeType: "ramcpu" (CPU/RAM only) or "full" (CPU/RAM + disk)
+func (c *Client) ResizeCloud(cloudID string, planID string, resizeType string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/resize", cloudID)
+	payload := map[string]string{
+		"plan": planID,
+		"type": resizeType,
+	}
+
+	respBytes, err := c.Post(endpoint, payload)
+	if err != nil {
+		return fmt.Errorf("failed to resize cloud instance: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse resize response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("resize failed: %s", result["message"])
+	}
+
+	return nil
+}
