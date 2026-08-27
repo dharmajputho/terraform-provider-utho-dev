@@ -79,6 +79,9 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewCloudSnapshotResource, // utho_cloud_snapshot
 		resources.NewCloudISOResource,      // utho_cloud_iso
 		resources.NewCloudResizeResource,   // utho_cloud_resize
+		resources.NewCloudPublicIPResource, // utho_cloud_public_ip
+		resources.NewCloudVPCResource,      // utho_cloud_vpc
+
 	}
 }
 

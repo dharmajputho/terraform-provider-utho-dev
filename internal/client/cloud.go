@@ -540,3 +540,87 @@ func (c *Client) ResizeCloud(cloudID string, planID string, resizeType string) e
 
 	return nil
 }
+
+// ── Network ───────────────────────────────────────────────────────────────
+
+// AssignPublicIP assigns an additional public IP to a cloud instance
+func (c *Client) AssignPublicIP(cloudID string) (string, error) {
+	endpoint := fmt.Sprintf("/cloud/%s/assignpublicip", cloudID)
+	respBytes, err := c.Post(endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to assign public IP: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return "", fmt.Errorf("failed to parse assign IP response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return "", fmt.Errorf("assign public IP failed: %s", result["message"])
+	}
+
+	ip, _ := result["ip"].(string)
+	return ip, nil
+}
+
+// DeletePublicIP releases a public IP from a cloud instance
+func (c *Client) DeletePublicIP(cloudID string, ip string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/ip/%s/delete", cloudID, ip)
+	respBytes, err := c.Delete(endpoint)
+	if err != nil {
+		return fmt.Errorf("failed to delete public IP: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse delete IP response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("delete public IP failed: %s", result["message"])
+	}
+
+	return nil
+}
+
+// AttachVPC attaches a VPC subnet to a cloud instance
+func (c *Client) AttachVPC(cloudID string, subnetID string) (string, error) {
+	endpoint := fmt.Sprintf("/cloud/%s/vpc/%s/attach", cloudID, subnetID)
+	respBytes, err := c.Post(endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to attach VPC: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return "", fmt.Errorf("failed to parse attach VPC response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return "", fmt.Errorf("attach VPC failed: %s", result["message"])
+	}
+
+	ip, _ := result["ip"].(string)
+	return ip, nil
+}
+
+// DetachVPC detaches a VPC subnet from a cloud instance
+func (c *Client) DetachVPC(cloudID string, subnetID string) error {
+	endpoint := fmt.Sprintf("/cloud/%s/vpc/%s/detach", cloudID, subnetID)
+	respBytes, err := c.Post(endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("failed to detach VPC: %w", err)
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse detach VPC response: %w", err)
+	}
+
+	if result["status"] != "success" {
+		return fmt.Errorf("detach VPC failed: %s", result["message"])
+	}
+
+	return nil
+}
