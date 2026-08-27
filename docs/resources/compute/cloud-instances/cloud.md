@@ -1,6 +1,6 @@
 ---
 page_title: "utho_cloud Resource - utho"
-subcategory: "Compute"
+subcategory: "Compute / Cloud Instances"
 description: |-
   Create and manage Utho Cloud instances.
 ---
@@ -19,16 +19,16 @@ attachment at creation time.
 
 ```hcl
 resource "utho_cloud" "web" {
-  hostname      = "web-01.mhc"
-  dcslug        = "inmumbaizone2"
-  planid        = "10360"
-  billingcycle  = "hourly"
-  auth          = "option1"
-  root_password = "StrongP@ssw0rd!"
-  image         = "ubuntu-22.04-x86_64"
+  hostname        = "web-01.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10360"
+  billingcycle    = "hourly"
+  auth            = "option1"
+  root_password   = "StrongP@ssw0rd!"
+  image           = "ubuntu-22.04-x86_64"
   enable_publicip = "true"
-  cpumodel      = "amd"
-  support       = "unmanaged"
+  cpumodel        = "amd"
+  support         = "unmanaged"
 }
 ```
 
@@ -71,7 +71,7 @@ output "worker_ips" {
 }
 ```
 
-### Instance inside a VPC with EBS
+### Instance inside a VPC with EBS volumes
 
 ```hcl
 resource "utho_cloud" "db" {
@@ -111,6 +111,29 @@ resource "utho_cloud" "restored" {
 }
 ```
 
+### Full production stack
+
+```hcl
+resource "utho_cloud" "api" {
+  count = 3
+
+  hostname        = "api-${count.index + 1}.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10360"
+  billingcycle    = "hourly"
+  auth            = "option2"
+  sshkeys         = "74133628"
+  image           = "ubuntu-22.04-x86_64"
+  enable_publicip = "true"
+  firewall        = "23437038"
+  support         = "unmanaged"
+}
+
+output "api_ips" {
+  value = utho_cloud.api[*].ip
+}
+```
+
 ## Argument Reference
 
 ### Required
@@ -121,28 +144,28 @@ resource "utho_cloud" "restored" {
 | `dcslug`       | String | Data center slug. See [Data Centers](#data-centers) below. |
 | `planid`       | String | Plan ID for the instance size. |
 | `billingcycle` | String | Billing cycle. Accepted values: `hourly`, `monthly`, `12month`. |
-| `auth`         | String | Authentication method. `option1` = password, `option2` = SSH key. |
+| `auth`         | String | Authentication method. `option1` = root password, `option2` = SSH key. |
 
 ### Optional
 
 | Argument          | Type   | Description |
 |-------------------|--------|-------------|
-| `root_password`   | String | Root password. Required when `auth = option1`. **Sensitive** — never shown in logs. |
-| `sshkeys`         | String | SSH key ID. Required when `auth = option2`. |
-| `image`           | String | OS image slug (e.g. `ubuntu-22.04-x86_64`). Required for standard deploys. |
-| `enable_publicip` | String | Assign a public IP: `true` or `false`. Defaults to `true`. |
-| `cpumodel`        | String | CPU architecture. Accepted values: `amd`, `intel`. |
+| `root_password`   | String | Root password. Required when `auth = option1`. **Sensitive** — never shown in logs or state. |
+| `sshkeys`         | String | SSH key ID. Required when `auth = option2`. Get the ID from the Utho dashboard. |
+| `image`           | String | OS image slug (e.g. `ubuntu-22.04-x86_64`). Required for standard OS deploys. |
+| `enable_publicip` | String | Assign a primary public IP: `true` or `false`. Default: `true`. |
+| `cpumodel`        | String | CPU architecture preference. Accepted values: `amd`, `intel`. |
 | `enablebackup`    | String | Enable automated backups: `true` or `false`. |
 | `support`         | String | Support level. Accepted values: `unmanaged`, `managed`. |
 | `firewall`        | String | Security group ID to attach at creation time. |
-| `vpc`             | String | VPC subnet ID for deploying the instance inside a private network. |
+| `vpc`             | String | VPC subnet ID. Deploys the instance inside a private network. |
 | `subnet_required` | String | Whether subnet attachment is required: `true` or `false`. |
-| `snapshotid`      | String | Snapshot ID to deploy from an existing snapshot. |
+| `snapshotid`      | String | Snapshot ID to deploy from an existing snapshot instead of a base image. |
 | `backupid`        | String | Backup ID to restore from an existing backup. |
 | `iso`             | String | ISO ID to deploy from a custom ISO image. |
 | `stack`           | String | Stack ID to deploy from a marketplace or custom stack. |
-| `delete_ebs`      | Bool   | Whether to delete attached EBS volumes when the instance is destroyed. Default: `false`. |
-| `ebs`             | List   | List of EBS volumes to attach at creation time. See [EBS Block](#ebs-block) below. |
+| `delete_ebs`      | Bool   | Delete attached EBS volumes when the instance is destroyed. Default: `false`. |
+| `ebs`             | List   | EBS volumes to attach at creation time. See [EBS Block](#ebs-block) below. |
 
 ### EBS Block
 
@@ -150,13 +173,13 @@ The `ebs` block supports the following arguments:
 
 | Argument | Type   | Required | Description |
 |----------|--------|----------|-------------|
-| `id`     | String | Yes      | EBS volume index (e.g. `"1"`, `"2"`). |
+| `id`     | String | Yes      | EBS volume index identifier (e.g. `"1"`, `"2"`). |
 | `disk`   | Number | Yes      | Disk size in GB. |
 | `type`   | String | Yes      | Disk type. Accepted values: `nvme`, `ssd`. |
 
 ## Attribute Reference
 
-In addition to all arguments above, the following attributes are exported:
+In addition to all arguments above, the following computed attributes are exported:
 
 | Attribute      | Type   | Description |
 |----------------|--------|-------------|
@@ -182,16 +205,16 @@ After importing, add the required fields (`planid`, `auth`) to your
 resource "utho_cloud" "web" {
   hostname      = "web-01.mhc"
   dcslug        = "inmumbaizone2"
-  planid        = "10360"   # add after import
+  planid        = "10360"    # add after import
   billingcycle  = "hourly"
-  auth          = "option1" # add after import
+  auth          = "option1"  # add after import
 }
 ```
 
 ## Data Centers
 
-| Slug             | Location       |
-|------------------|----------------|
-| `innoida`        | Noida, India   |
-| `inmumbaizone2`  | Mumbai, India  |
-| `inbangalore`    | Bangalore, India |
+| Slug             | Location           |
+|------------------|--------------------|
+| `innoida`        | Noida, India       |
+| `inmumbaizone2`  | Mumbai, India      |
+| `inbangalore`    | Bangalore, India   |

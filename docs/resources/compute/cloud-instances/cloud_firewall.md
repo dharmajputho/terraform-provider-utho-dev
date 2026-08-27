@@ -1,17 +1,18 @@
 ---
 page_title: "utho_cloud_firewall Resource - utho"
-subcategory: "Networking"
+subcategory: "Compute / Cloud Instances"
 description: |-
   Attach or detach a security group from a Utho Cloud instance.
 ---
 
 # utho_cloud_firewall
 
-Attaches a security group (firewall) to a Utho Cloud instance.
-Multiple security groups can be attached to the same instance by
-creating multiple `utho_cloud_firewall` resources.
+Attaches an existing security group (firewall) to a Utho Cloud instance.
+Multiple security groups can be attached to the same instance by creating
+multiple `utho_cloud_firewall` resources.
 
-Destroying this resource detaches the security group from the instance.
+Destroying this resource detaches the security group. Rules stop applying
+within a few seconds of detachment.
 
 ## Example Usage
 
@@ -32,13 +33,13 @@ resource "utho_cloud_firewall" "web_sg" {
   firewall_id = "23437038"
 }
 
-resource "utho_cloud_firewall" "db_sg" {
+resource "utho_cloud_firewall" "monitoring_sg" {
   cloud_id    = utho_cloud.web.id
   firewall_id = "23436544"
 }
 ```
 
-### Attach security groups to multiple instances
+### Attach the same security group to multiple instances
 
 ```hcl
 resource "utho_cloud" "workers" {
@@ -69,8 +70,7 @@ resource "utho_cloud_firewall" "worker_sg" {
 
 ## Notes
 
-- Changing either `cloud_id` or `firewall_id` destroys and recreates
-  the attachment.
-- To detach a security group, remove the resource block and run
-  `terraform apply`.
+- Changing either `cloud_id` or `firewall_id` destroys and recreates the attachment.
+- To detach a security group, remove the resource block and run `terraform apply`.
 - Security group rules apply within a few seconds of attachment.
+- The security group itself is not deleted when this resource is destroyed.

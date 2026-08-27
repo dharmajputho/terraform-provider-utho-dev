@@ -1,6 +1,6 @@
 ---
 page_title: "utho_clouds Data Source - utho"
-subcategory: "Compute"
+subcategory: "Compute / Cloud Instances"
 description: |-
   List all Utho Cloud instances in your account.
 ---
@@ -8,8 +8,8 @@ description: |-
 # utho_clouds
 
 Lists all Utho Cloud instances in your account. Useful for referencing
-existing instances, auditing your infrastructure, or using instance data
-in other resources.
+existing instances, auditing infrastructure, or using instance data
+in other resources without managing the instances directly.
 
 ## Example Usage
 
@@ -36,7 +36,7 @@ output "running_ips" {
 }
 ```
 
-### Find instances in a specific datacenter
+### Filter instances by datacenter
 
 ```hcl
 data "utho_clouds" "all" {}
@@ -64,15 +64,17 @@ locals {
     c.cloud_id if startswith(c.hostname, "worker-")
   ]
 }
+
+output "worker_ids" {
+  value = local.worker_ids
+}
 ```
 
 ## Attribute Reference
 
-This data source exports the following attributes:
-
 ### `clouds`
 
-A list of cloud instances. Each element contains:
+A list of all cloud instances. Each element contains:
 
 | Attribute      | Type   | Description |
 |----------------|--------|-------------|

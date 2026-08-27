@@ -1,6 +1,6 @@
 ---
 page_title: "utho_cloud_iso Resource - utho"
-subcategory: "Compute"
+subcategory: "Compute / Cloud Instances"
 description: |-
   Mount an ISO image on a Utho Cloud instance and boot from it.
 ---
@@ -8,12 +8,10 @@ description: |-
 # utho_cloud_iso
 
 Mounts a custom ISO image on a Utho Cloud instance and boots from it.
-This is useful for installing custom operating systems or running
-live environments.
+Useful for installing custom operating systems or running live environments.
 
-~> **Note:** This is a one-time boot action. Once mounted, the instance
-boots from the ISO. Destroying this resource removes it from Terraform
-state only — there is no API call to unmount the ISO.
+~> **Note:** ISO mount is a one-time boot action. Destroying this resource
+removes the record from Terraform state only — there is no API call to unmount.
 
 ## Example Usage
 
@@ -26,12 +24,18 @@ resource "utho_cloud_iso" "custom_os" {
 }
 ```
 
-### Mount ISO on an existing instance
+### Mount and power-cycle to boot
 
 ```hcl
 resource "utho_cloud_iso" "recovery" {
   cloud_id = "1671990"
   iso      = "rescue-disk-2026.iso"
+}
+
+resource "utho_cloud_power" "reboot_into_iso" {
+  cloud_id   = "1671990"
+  action     = "powercycle"
+  depends_on = [utho_cloud_iso.recovery]
 }
 ```
 
@@ -51,6 +55,5 @@ resource "utho_cloud_iso" "recovery" {
 ## Notes
 
 - The ISO must be uploaded to your Utho account before using this resource.
-- Changing `cloud_id` or `iso` destroys the current record and creates a new one,
-  which re-mounts the new ISO.
-- After mounting, power-cycle the instance to boot from the ISO.
+- After mounting, power-cycle the instance using `utho_cloud_power` to boot from the ISO.
+- Changing `cloud_id` or `iso` destroys the record and re-executes the mount with the new values.

@@ -1,17 +1,17 @@
 ---
 page_title: "utho_cloud_ebs Resource - utho"
-subcategory: "Storage"
+subcategory: "Compute / Cloud Instances"
 description: |-
   Attach and manage EBS volumes on a Utho Cloud instance.
 ---
 
 # utho_cloud_ebs
 
-Attaches an existing EBS (Elastic Block Storage) volume to a Utho Cloud instance.
-The EBS volume must already exist in your Utho account before attaching.
+Attaches an existing EBS (Elastic Block Storage) volume to a Utho Cloud
+instance. The EBS volume must already exist in your Utho account.
 
-Destroying this resource detaches the EBS volume from the instance.
-The volume itself is not deleted.
+Destroying this resource detaches the EBS volume. The volume itself is
+not deleted.
 
 ## Example Usage
 
@@ -46,14 +46,29 @@ resource "utho_cloud_ebs" "data" {
 }
 ```
 
+### Attach and power-cycle to detect new disk
+
+```hcl
+resource "utho_cloud_ebs" "data" {
+  cloud_id = utho_cloud.app.id
+  ebs_id   = "85829"
+}
+
+resource "utho_cloud_power" "apply_disk" {
+  cloud_id   = utho_cloud.app.id
+  action     = "powercycle"
+  depends_on = [utho_cloud_ebs.data]
+}
+```
+
 ## Argument Reference
 
 | Argument    | Type   | Required | Description |
 |-------------|--------|----------|-------------|
-| `cloud_id`  | String | Yes      | The ID of the cloud instance to attach the EBS volume to. Changing this forces a new resource. |
+| `cloud_id`  | String | Yes      | The ID of the cloud instance. Changing this forces a new resource. |
 | `ebs_id`    | String | Yes      | The ID of the EBS volume to attach. Changing this forces a new resource. |
 | `bus`       | String | No       | Disk bus type. Accepted values: `virtio`, `ide`. |
-| `disk_type` | String | No       | Disk role. Accepted values: `Primary`, `Additional`. Only one `Primary` disk is allowed per instance. |
+| `disk_type` | String | No       | Disk role. Accepted values: `Primary`, `Additional`. Only one `Primary` disk allowed per instance. |
 
 ## Attribute Reference
 
@@ -63,10 +78,7 @@ resource "utho_cloud_ebs" "data" {
 
 ## Notes
 
-- Changing `cloud_id` or `ebs_id` destroys the current attachment and
-  creates a new one.
+- Changing `cloud_id` or `ebs_id` destroys the current attachment and creates a new one.
 - Changing `bus` or `disk_type` updates the existing attachment in place.
-- The EBS volume is **not** deleted when this resource is destroyed —
-  only the attachment is removed.
-- After attaching an EBS volume, power-cycle the instance
-  (`utho_cloud_power`) for the guest OS to detect the new disk.
+- The EBS volume is **not** deleted when this resource is destroyed — only the attachment is removed.
+- After attaching, power-cycle the instance using `utho_cloud_power` so the guest OS detects the new disk.

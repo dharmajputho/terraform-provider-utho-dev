@@ -69,21 +69,29 @@ Use environment variables or a secrets manager such as HashiCorp Vault.
 
 ## Resources
 
+### Compute
+
+#### Cloud Instances
+
 | Resource | Description |
 |----------|-------------|
-| [utho_cloud](resources/cloud.md) | Create and manage cloud instances |
-| [utho_cloud_power](resources/cloud_power.md) | Manage power state of a cloud instance |
-| [utho_cloud_firewall](resources/cloud_firewall.md) | Attach or detach security groups |
-| [utho_cloud_storage](resources/cloud_storage.md) | Add and manage general storage disks |
-| [utho_cloud_ebs](resources/cloud_ebs.md) | Attach and manage EBS volumes |
-| [utho_cloud_snapshot](resources/cloud_snapshot.md) | Create, restore, and delete snapshots |
-| [utho_cloud_iso](resources/cloud_iso.md) | Mount an ISO and boot from it |
-| [utho_cloud_resize](resources/cloud_resize.md) | Resize CPU, RAM, and disk |
-| [utho_cloud_public_ip](resources/cloud_public_ip.md) | Assign or release additional public IPs |
-| [utho_cloud_vpc](resources/cloud_vpc.md) | Attach or detach VPC subnets |
+| [utho_cloud](resources/compute/cloud-instances/cloud.md) | Create and manage cloud instances |
+| [utho_cloud_power](resources/compute/cloud-instances/cloud_power.md) | Manage power state |
+| [utho_cloud_resize](resources/compute/cloud-instances/cloud_resize.md) | Resize CPU, RAM, and disk |
+| [utho_cloud_snapshot](resources/compute/cloud-instances/cloud_snapshot.md) | Create, restore, and delete snapshots |
+| [utho_cloud_iso](resources/compute/cloud-instances/cloud_iso.md) | Mount an ISO and boot from it |
+| [utho_cloud_firewall](resources/compute/cloud-instances/cloud_firewall.md) | Attach or detach security groups |
+| [utho_cloud_storage](resources/compute/cloud-instances/cloud_storage.md) | Add and manage general storage disks |
+| [utho_cloud_ebs](resources/compute/cloud-instances/cloud_ebs.md) | Attach and manage EBS volumes |
+| [utho_cloud_public_ip](resources/compute/cloud-instances/cloud_public_ip.md) | Assign or release additional public IPs |
+| [utho_cloud_vpc](resources/compute/cloud-instances/cloud_vpc.md) | Attach or detach VPC subnets |
 
 ## Data Sources
 
+### Compute
+
+#### Cloud Instances
+
 | Data Source | Description |
 |-------------|-------------|
-| [utho_clouds](data-sources/clouds.md) | List all cloud instances in your account |
+| [utho_clouds](data-sources/compute/clouds.md) | List all cloud instances in your account |

@@ -1,6 +1,6 @@
 ---
 page_title: "utho_cloud_power Resource - utho"
-subcategory: "Compute"
+subcategory: "Compute / Cloud Instances"
 description: |-
   Manage the power state of a Utho Cloud instance.
 ---
@@ -19,27 +19,33 @@ action on the next apply.
 ### Power off an instance
 
 ```hcl
-resource "utho_cloud_power" "stop_web" {
-  cloud_id = "1671990"
+resource "utho_cloud_power" "stop" {
+  cloud_id = utho_cloud.web.id
   action   = "poweroff"
 }
 ```
 
-### Reboot an instance
+### Hard reboot an instance
 
 ```hcl
-resource "utho_cloud_power" "reboot_app" {
+resource "utho_cloud_power" "reboot" {
   cloud_id = utho_cloud.app.id
   action   = "hardreboot"
 }
 ```
 
-### Power cycle (force restart)
+### Power cycle after attaching a VPC
 
 ```hcl
-resource "utho_cloud_power" "cycle_db" {
-  cloud_id = "1671990"
-  action   = "powercycle"
+resource "utho_cloud_vpc" "private" {
+  cloud_id  = utho_cloud.app.id
+  subnet_id = "b0825dae-fd86-4d67-8238-c438774da894"
+}
+
+resource "utho_cloud_power" "apply_vpc" {
+  cloud_id   = utho_cloud.app.id
+  action     = "powercycle"
+  depends_on = [utho_cloud_vpc.private]
 }
 ```
 
@@ -57,7 +63,7 @@ resource "utho_cloud_power" "cycle_db" {
 | `poweron`    | Start a stopped instance. |
 | `poweroff`   | Gracefully shut down a running instance. |
 | `hardreboot` | Force reboot the instance (equivalent to a hard reset). |
-| `powercycle` | Power cycle the instance (power off then power on). |
+| `powercycle` | Power off then power on the instance. Required after VPC or NIC changes. |
 
 ## Attribute Reference
 
