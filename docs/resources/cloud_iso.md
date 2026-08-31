@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_iso Resource - utho"
+page_title: "Cloud Instance ISO Mount - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Mount an ISO image on a Utho Cloud instance and boot from it.

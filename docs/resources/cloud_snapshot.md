@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_snapshot Resource - utho"
+page_title: "Cloud Instance Snapshot - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Create, restore, and delete snapshots of a Utho Cloud instance.

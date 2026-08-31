@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_storage Resource - utho"
+page_title: "Cloud Instance General Storage - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Add and manage general storage disks on a Utho Cloud instance.

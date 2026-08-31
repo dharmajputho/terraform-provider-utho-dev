@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud Resource - utho"
+page_title: "Cloud Instance - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Create and manage Utho Cloud instances.

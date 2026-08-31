@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_power Resource - utho"
+page_title: "Cloud Instance Power Management - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Manage the power state of a Utho Cloud instance.

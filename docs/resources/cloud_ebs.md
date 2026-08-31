@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_ebs Resource - utho"
+page_title: "Cloud Instance EBS Volume - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Attach and manage EBS volumes on a Utho Cloud instance.

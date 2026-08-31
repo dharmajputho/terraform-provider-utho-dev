@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_resize Resource - utho"
+page_title: "Cloud Instance Resize - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Resize a Utho Cloud instance — CPU/RAM only or full resize including disk.

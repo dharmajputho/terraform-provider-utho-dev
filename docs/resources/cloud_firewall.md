@@ -1,5 +1,5 @@
 ---
-page_title: "utho_cloud_firewall Resource - utho"
+page_title: "Cloud Instance Security Group - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Attach or detach a security group from a Utho Cloud instance.
