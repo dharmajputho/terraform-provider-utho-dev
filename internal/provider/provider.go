@@ -81,6 +81,13 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewCloudResizeResource,   // utho_cloud_resize
 		resources.NewCloudPublicIPResource, // utho_cloud_public_ip
 		resources.NewCloudVPCResource,      // utho_cloud_vpc
+		resources.NewVPCResource,           // utho_vpc
+		resources.NewSubnetResource,        // utho_subnet
+		resources.NewNATGatewayResource,    // utho_nat_gateway
+		resources.NewRouteTableResource,    // utho_route_table
+		resources.NewRouteResource,         // utho_route
+		resources.NewElasticIPResource,     // utho_elastic_ip
+		resources.NewVPCPeeringResource,    // utho_vpc_peering
 
 	}
 }
