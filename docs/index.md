@@ -8,7 +8,7 @@ description: |-
 
 The **Utho** provider allows you to create, manage, and destroy infrastructure
 on [Utho Cloud](https://utho.com) using Terraform. It supports cloud instances,
-networking, storage, snapshots, power management, and more.
+networking, storage, snapshots, power management, VPC, and more.
 
 ## Example Usage
 
@@ -75,7 +75,19 @@ export UTHO_API_KEY="your-api-key"
 | [utho_cloud_storage](resources/cloud_storage) | Add and manage general storage disks |
 | [utho_cloud_ebs](resources/cloud_ebs) | Attach and manage EBS volumes |
 | [utho_cloud_public_ip](resources/cloud_public_ip) | Assign or release additional public IPs |
-| [utho_cloud_vpc](resources/cloud_vpc) | Attach or detach VPC subnets |
+| [utho_cloud_vpc](resources/cloud_vpc) | Attach or detach VPC subnets from instances |
+
+### Networking / VPC
+
+| Resource | Description |
+|----------|-------------|
+| [utho_vpc](resources/vpc) | Create and manage VPC networks |
+| [utho_subnet](resources/subnet) | Create and manage subnets inside a VPC |
+| [utho_nat_gateway](resources/nat_gateway) | Create and manage NAT Gateways |
+| [utho_route_table](resources/route_table) | Create and manage route tables |
+| [utho_route](resources/route) | Create and manage individual routes |
+| [utho_elastic_ip](resources/elastic_ip) | Allocate and manage Elastic IPs |
+| [utho_vpc_peering](resources/vpc_peering) | Create and manage VPC peering connections |
 
 ## Data Sources
 
