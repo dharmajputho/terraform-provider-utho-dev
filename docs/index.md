@@ -76,6 +76,7 @@ export UTHO_API_KEY="your-api-key"
 | [utho_cloud_ebs](resources/cloud_ebs) | Attach and manage EBS volumes |
 | [utho_cloud_public_ip](resources/cloud_public_ip) | Assign or release additional public IPs |
 | [utho_cloud_vpc](resources/cloud_vpc) | Attach or detach VPC subnets from instances |
+| [utho_ssh_key](resources/ssh_key) | Import and manage SSH keys |0
 
 ### Networking / VPC
 
@@ -88,6 +89,15 @@ export UTHO_API_KEY="your-api-key"
 | [utho_route](resources/route) | Create and manage individual routes |
 | [utho_elastic_ip](resources/elastic_ip) | Allocate and manage Elastic IPs |
 | [utho_vpc_peering](resources/vpc_peering) | Create and manage VPC peering connections |
+
+
+### Networking / Security
+
+| Resource | Description |
+|----------|-------------|
+| [utho_firewall](resources/firewall) | Create and manage Security Groups |
+| [utho_firewall_rule](resources/firewall_rule) | Add and manage Security Group rules |
+| [utho_firewall_server](resources/firewall_server) | Attach or detach servers from Security Groups |
 
 ## Data Sources
 

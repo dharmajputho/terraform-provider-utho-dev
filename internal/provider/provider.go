@@ -71,29 +71,50 @@ func (p *uthoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		resources.NewCloudResource,         // utho_cloud
-		resources.NewCloudPowerResource,    // utho_cloud_power
-		resources.NewCloudFirewallResource, //utho_cloud_firewall
-		resources.NewCloudStorageResource,  // utho_cloud_storage
-		resources.NewCloudEBSResource,      // utho_cloud_ebs
-		resources.NewCloudSnapshotResource, // utho_cloud_snapshot
-		resources.NewCloudISOResource,      // utho_cloud_iso
-		resources.NewCloudResizeResource,   // utho_cloud_resize
-		resources.NewCloudPublicIPResource, // utho_cloud_public_ip
-		resources.NewCloudVPCResource,      // utho_cloud_vpc
-		resources.NewVPCResource,           // utho_vpc
-		resources.NewSubnetResource,        // utho_subnet
-		resources.NewNATGatewayResource,    // utho_nat_gateway
-		resources.NewRouteTableResource,    // utho_route_table
-		resources.NewRouteResource,         // utho_route
-		resources.NewElasticIPResource,     // utho_elastic_ip
-		resources.NewVPCPeeringResource,    // utho_vpc_peering
-
+		resources.NewCloudResource,                   // utho_cloud
+		resources.NewCloudPowerResource,              // utho_cloud_power
+		resources.NewCloudFirewallResource,           //utho_cloud_firewall
+		resources.NewCloudStorageResource,            // utho_cloud_storage
+		resources.NewCloudEBSResource,                // utho_cloud_ebs
+		resources.NewCloudSnapshotResource,           // utho_cloud_snapshot
+		resources.NewCloudISOResource,                // utho_cloud_iso
+		resources.NewCloudResizeResource,             // utho_cloud_resize
+		resources.NewCloudPublicIPResource,           // utho_cloud_public_ip
+		resources.NewCloudVPCResource,                // utho_cloud_vpc
+		resources.NewVPCResource,                     // utho_vpc
+		resources.NewSubnetResource,                  // utho_subnet
+		resources.NewNATGatewayResource,              // utho_nat_gateway
+		resources.NewRouteTableResource,              // utho_route_table
+		resources.NewRouteResource,                   // utho_route
+		resources.NewElasticIPResource,               // utho_elastic_ip
+		resources.NewVPCPeeringResource,              // utho_vpc_peering
+		resources.NewSSHKeyResource,                  // utho_ssh_key
+		resources.NewFirewallResource,                // utho_firewall
+		resources.NewFirewallRuleResource,            // utho_firewall_rule
+		resources.NewFirewallServerResource,          // utho_firewall_server
+		resources.NewLoadBalancerResource,            // utho_loadbalancer
+		resources.NewLBFrontendResource,              // utho_loadbalancer_frontend
+		resources.NewLBBackendResource,               // utho_loadbalancer_backend
+		resources.NewLBACLResource,                   // utho_loadbalancer_acl
+		resources.NewLBSettingsResource,              // utho_loadbalancer_settings
+		resources.NewObjectStorageResource,           // utho_object_storage
+		resources.NewObjectStoragePermissionResource, // utho_object_storage_permission
+		resources.NewObjectStorageKeyResource,        // utho_object_storage_key
+		resources.NewDNSZoneResource,                 // utho_dns_zone
+		resources.NewDNSRecordResource,               // utho_dns_record
+		resources.NewSSLCertificateResource,          // utho_ssl_certificate
+		resources.NewKubernetesResource,              // utho_kubernetes
+		resources.NewKubernetesNodePoolResource,      // utho_kubernetes_node_pool
+		resources.NewDatabaseResource,                // utho_database
+		resources.NewDatabaseDBResource,              // utho_database_db
+		resources.NewDatabaseUserResource,            // utho_database_user
+		resources.NewDatabasePoolResource,            // utho_database_pool
 	}
 }
 
 func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		datasources.NewCloudsDataSource, // data.utho_clouds
+		datasources.NewCloudsDataSource,     // data.utho_clouds
+		datasources.NewKubeconfigDataSource, // data.utho_kubernetes_config
 	}
 }
