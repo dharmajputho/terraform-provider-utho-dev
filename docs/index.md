@@ -8,7 +8,7 @@ description: |-
 
 The **Utho** provider allows you to create, manage, and destroy infrastructure
 on [Utho Cloud](https://utho.com) using Terraform. It supports cloud instances,
-networking, storage, snapshots, power management, VPC, and more.
+networking, storage, Kubernetes, managed databases, DNS, SSL, and more.
 
 ## Example Usage
 
@@ -76,7 +76,14 @@ export UTHO_API_KEY="your-api-key"
 | [utho_cloud_ebs](resources/cloud_ebs) | Attach and manage EBS volumes |
 | [utho_cloud_public_ip](resources/cloud_public_ip) | Assign or release additional public IPs |
 | [utho_cloud_vpc](resources/cloud_vpc) | Attach or detach VPC subnets from instances |
-| [utho_ssh_key](resources/ssh_key) | Import and manage SSH keys |0
+| [utho_ssh_key](resources/ssh_key) | Import and manage SSH keys |
+
+### Compute / Kubernetes
+
+| Resource | Description |
+|----------|-------------|
+| [utho_kubernetes](resources/kubernetes) | Create and manage Kubernetes clusters |
+| [utho_kubernetes_node_pool](resources/kubernetes_node_pool) | Add and manage node pools |
 
 ### Networking / VPC
 
@@ -90,7 +97,6 @@ export UTHO_API_KEY="your-api-key"
 | [utho_elastic_ip](resources/elastic_ip) | Allocate and manage Elastic IPs |
 | [utho_vpc_peering](resources/vpc_peering) | Create and manage VPC peering connections |
 
-
 ### Networking / Security
 
 | Resource | Description |
@@ -99,6 +105,46 @@ export UTHO_API_KEY="your-api-key"
 | [utho_firewall_rule](resources/firewall_rule) | Add and manage Security Group rules |
 | [utho_firewall_server](resources/firewall_server) | Attach or detach servers from Security Groups |
 
+### Networking / Load Balancing
+
+| Resource | Description |
+|----------|-------------|
+| [utho_loadbalancer](resources/loadbalancer) | Create and manage Load Balancers |
+| [utho_loadbalancer_frontend](resources/loadbalancer_frontend) | Add and manage frontends |
+| [utho_loadbalancer_backend](resources/loadbalancer_backend) | Add and manage backends |
+| [utho_loadbalancer_acl](resources/loadbalancer_acl) | Add and manage ACL rules |
+| [utho_loadbalancer_settings](resources/loadbalancer_settings) | Configure advanced LB settings |
+
+### Networking / DNS
+
+| Resource | Description |
+|----------|-------------|
+| [utho_dns_zone](resources/dns_zone) | Create and manage DNS zones |
+| [utho_dns_record](resources/dns_record) | Create and manage DNS records |
+
+### Security
+
+| Resource | Description |
+|----------|-------------|
+| [utho_ssl_certificate](resources/ssl_certificate) | Upload and manage SSL certificates |
+
+### Storage / Object Storage
+
+| Resource | Description |
+|----------|-------------|
+| [utho_object_storage](resources/object_storage) | Create and manage S3-compatible buckets |
+| [utho_object_storage_permission](resources/object_storage_permission) | Grant bucket permissions to access keys |
+| [utho_object_storage_key](resources/object_storage_key) | Create and manage S3 access keys |
+
+### Database
+
+| Resource | Description |
+|----------|-------------|
+| [utho_database](resources/database) | Create and manage managed database clusters |
+| [utho_database_db](resources/database_db) | Create databases inside a cluster |
+| [utho_database_user](resources/database_user) | Create and manage database users |
+| [utho_database_pool](resources/database_pool) | Create and manage connection pools |
+
 ## Data Sources
 
 ### Compute / Cloud Instances
@@ -106,3 +152,9 @@ export UTHO_API_KEY="your-api-key"
 | Data Source | Description |
 |-------------|-------------|
 | [utho_clouds](data-sources/clouds) | List all cloud instances in your account |
+
+### Compute / Kubernetes
+
+| Data Source | Description |
+|-------------|-------------|
+| [utho_kubernetes_config](data-sources/kubernetes_config) | Fetch kubeconfig for a Kubernetes cluster |
