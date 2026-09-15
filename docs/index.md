@@ -158,3 +158,12 @@ export UTHO_API_KEY="your-api-key"
 | Data Source | Description |
 |-------------|-------------|
 | [utho_kubernetes_config](data-sources/kubernetes_config) | Fetch kubeconfig for a Kubernetes cluster |
+
+
+### Compute / Auto Scaling
+
+| Resource | Description |
+|----------|-------------|
+| [utho_autoscaling](resources/autoscaling) | Create and manage Auto Scaling groups |
+| [utho_autoscaling_policy](resources/autoscaling_policy) | Create and manage scaling policies |
+| [utho_autoscaling_schedule](resources/autoscaling_schedule) | Manage scheduled scaling policies |
