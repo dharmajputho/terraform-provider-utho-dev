@@ -167,3 +167,10 @@ export UTHO_API_KEY="your-api-key"
 | [utho_autoscaling](resources/autoscaling) | Create and manage Auto Scaling groups |
 | [utho_autoscaling_policy](resources/autoscaling_policy) | Create and manage scaling policies |
 | [utho_autoscaling_schedule](resources/autoscaling_schedule) | Manage scheduled scaling policies |
+
+
+### Account / IAM
+
+| Resource | Description |
+|----------|-------------|
+| [utho_api_token](resources/api_token) | Create and manage API tokens |

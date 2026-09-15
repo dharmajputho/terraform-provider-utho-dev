@@ -111,6 +111,7 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewDatabasePoolResource,            // utho_database_pool
 		resources.NewAutoScalingResource,             // utho_autoscaling
 		resources.NewScalingPolicyResource,           // utho_autoscaling_policy
+		resources.NewAPITokenResource,                // utho_api_token
 	}
 }
 
