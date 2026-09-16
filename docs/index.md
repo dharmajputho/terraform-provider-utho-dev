@@ -183,6 +183,12 @@ export UTHO_API_KEY="your-api-key"
 | [utho_api_token](resources/api_token) | Create and manage API tokens |
 | [utho_iam_user](resources/iam_user) | Create and manage IAM sub-users |
 
+### Account / Projects
+
+| Resource | Description |
+|----------|-------------|
+| [utho_project](resources/project) | Create and manage projects |
+| [utho_project_member](resources/project_member) | Add and manage project members |
 
 
 ### Monitoring

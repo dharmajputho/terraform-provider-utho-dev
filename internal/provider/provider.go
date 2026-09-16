@@ -117,6 +117,8 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewIPSecResource,                   // utho_ipsec
 		resources.NewIPSecConnectionResource,         // utho_ipsec_connection
 		resources.NewIAMUserResource,                 // utho_iam_user
+		resources.NewProjectResource,                 // utho_project
+		resources.NewProjectMemberResource,           // utho_project_member
 	}
 }
 
