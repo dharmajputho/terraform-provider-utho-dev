@@ -181,6 +181,7 @@ export UTHO_API_KEY="your-api-key"
 | Resource | Description |
 |----------|-------------|
 | [utho_api_token](resources/api_token) | Create and manage API tokens |
+| [utho_iam_user](resources/iam_user) | Create and manage IAM sub-users |
 
 
 
