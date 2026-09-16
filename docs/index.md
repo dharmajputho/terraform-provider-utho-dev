@@ -174,3 +174,12 @@ export UTHO_API_KEY="your-api-key"
 | Resource | Description |
 |----------|-------------|
 | [utho_api_token](resources/api_token) | Create and manage API tokens |
+
+
+
+### Monitoring
+
+| Resource | Description |
+|----------|-------------|
+| [utho_alert_contact](resources/alert_contact) | Create and manage alert contacts |
+| [utho_alert](resources/alert) | Create and manage monitoring alert rules |
