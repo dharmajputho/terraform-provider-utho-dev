@@ -122,6 +122,13 @@ export UTHO_API_KEY="your-api-key"
 | [utho_dns_zone](resources/dns_zone) | Create and manage DNS zones |
 | [utho_dns_record](resources/dns_record) | Create and manage DNS records |
 
+### Networking / VPN
+
+| Resource | Description |
+|----------|-------------|
+| [utho_ipsec](resources/ipsec) | Create and manage IPSec site-to-site VPN tunnels |
+| [utho_ipsec_connection](resources/ipsec_connection) | Create and manage IPSec tunnel connections |
+
 ### Security
 
 | Resource | Description |
