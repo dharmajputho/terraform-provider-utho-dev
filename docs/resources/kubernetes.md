@@ -2,30 +2,32 @@
 page_title: "Kubernetes Cluster - Utho"
 subcategory: "Compute / Kubernetes"
 description: |-
-  Create and manage Utho Kubernetes clusters.
+  Create and manage Utho Managed Kubernetes clusters.
 ---
 
 # utho_kubernetes
 
-Creates and manages a Utho Managed Kubernetes cluster. Node pools are defined inline at creation time. Additional node pools can be added using `utho_kubernetes_node_pool`.
+Creates and manages a Utho Managed Kubernetes cluster. Utho provisions and manages the control plane — you just define your node pools and the cluster version. Worker nodes run in your account and are visible as cloud instances.
+
+After creation, fetch the kubeconfig with the `utho_kubernetes_config` data source to authenticate `kubectl` or configure Kubernetes providers.
 
 ## Example Usage
 
-### Basic cluster
+### Single-zone cluster with one node pool
 
 ```hcl
 resource "utho_kubernetes" "main" {
   dcslug          = "inmumbaizone2"
-  cluster_label   = "production-cluster"
+  cluster_label   = "production"
   cluster_version = "1.30.0-utho"
   network_type    = "public"
 
   nodepools = [
     {
-      label     = "worker-pool"
-      size      = "10355"
+      label     = "workers"
+      size      = "10355"   # 4 vCPU / 8 GB RAM
       count     = "3"
-      min_nodes = "1"
+      min_nodes = "2"
       max_nodes = "10"
       disk_size = "30"
       disk_type = "nvme"
@@ -33,16 +35,13 @@ resource "utho_kubernetes" "main" {
   ]
 }
 
-output "cluster_id" {
-  value = utho_kubernetes.main.id
-}
-
-output "cluster_dns" {
-  value = utho_kubernetes.main.dns
-}
+output "cluster_id" { value = utho_kubernetes.main.id }
+output "cluster_dns" { value = utho_kubernetes.main.dns }
 ```
 
-### Cluster inside a VPC
+### Private cluster inside a VPC
+
+Suitable for production workloads where the control plane endpoint should not be publicly accessible.
 
 ```hcl
 resource "utho_kubernetes" "private" {
@@ -57,48 +56,108 @@ resource "utho_kubernetes" "private" {
     {
       label     = "app-pool"
       size      = "10355"
-      count     = "2"
+      count     = "3"
       min_nodes = "2"
-      max_nodes = "5"
+      max_nodes = "8"
     }
   ]
 }
 ```
 
-### Get kubeconfig after creation
+### Multi-pool cluster for workload separation
+
+Use separate node pools for different workload types — general app servers, memory-intensive jobs, etc.
+
+```hcl
+resource "utho_kubernetes" "main" {
+  dcslug          = "inmumbaizone2"
+  cluster_label   = "multi-pool"
+  cluster_version = "1.30.0-utho"
+  network_type    = "public"
+
+  nodepools = [
+    {
+      label     = "general"
+      size      = "10355"
+      count     = "3"
+      min_nodes = "2"
+      max_nodes = "10"
+    }
+  ]
+}
+
+# Add a high-memory pool for batch workloads
+resource "utho_kubernetes_node_pool" "batch" {
+  cluster_id = utho_kubernetes.main.id
+  label      = "batch"
+  size       = "10400"   # higher memory plan
+  count      = "2"
+  min_nodes  = "1"
+  max_nodes  = "5"
+}
+```
+
+### Get kubeconfig and use with kubectl
 
 ```hcl
 data "utho_kubernetes_config" "main" {
   cluster_id = utho_kubernetes.main.id
 }
 
-output "kubeconfig" {
-  value     = data.utho_kubernetes_config.main.raw_config
-  sensitive = true
+# Save to file for kubectl
+resource "local_file" "kubeconfig" {
+  content         = data.utho_kubernetes_config.main.raw_config
+  filename        = "${path.module}/kubeconfig.yaml"
+  file_permission = "0600"
+}
+
+output "kubeconfig_command" {
+  value = "export KUBECONFIG=${path.module}/kubeconfig.yaml"
 }
 ```
 
 ## Argument Reference
 
-| Argument           | Type   | Required | Description |
-|--------------------|--------|----------|-------------|
-| `dcslug`           | String | Yes      | Data center slug. Changing this forces a new resource. |
-| `cluster_label`    | String | Yes      | Cluster name. Changing this forces a new resource. |
-| `cluster_version`  | String | Yes      | Kubernetes version (e.g. `1.30.0-utho`). Changing this forces a new resource. |
-| `network_type`     | String | Yes      | Network type: `public`, `private`, or `publicprivate`. Changing this forces a new resource. |
-| `nodepools`        | List   | Yes      | Initial node pools. See [Node Pool Block](#node-pool-block). |
-| `vpc`              | String | No       | VPC subnet ID. Changing this forces a new resource. |
-| `cpumodel`         | String | No       | CPU model: `amd` or `intel`. Changing this forces a new resource. |
+### Required
+
+| Argument           | Type   | Description |
+|--------------------|--------|-------------|
+| `dcslug`           | String | Data center for the cluster. Changing this forces a new resource. |
+| `cluster_label`    | String | Cluster name. Changing this forces a new resource. |
+| `cluster_version`  | String | Kubernetes version (e.g. `1.30.0-utho`). Changing this forces a new resource. |
+| `network_type`     | String | `public`, `private`, or `publicprivate`. Changing this forces a new resource. |
+| `nodepools`        | List   | One or more node pool definitions. See [Node Pool Block](#node-pool-block). |
+
+### Optional
+
+| Argument    | Type   | Description |
+|-------------|--------|-------------|
+| `vpc`       | String | VPC subnet ID for a private cluster. Changing this forces a new resource. |
+| `cpumodel`  | String | CPU preference: `amd` or `intel`. Changing this forces a new resource. |
 
 ### Node Pool Block
 
+```hcl
+nodepools = [
+  {
+    label     = "workers"
+    size      = "10355"
+    count     = "3"
+    min_nodes = "2"
+    max_nodes = "10"
+    disk_size = "30"    # optional
+    disk_type = "nvme"  # optional
+  }
+]
+```
+
 | Argument    | Type   | Required | Description |
 |-------------|--------|----------|-------------|
-| `label`     | String | Yes      | Node pool label. |
-| `size`      | String | Yes      | Plan ID for worker node size. |
-| `count`     | String | Yes      | Number of worker nodes. |
-| `min_nodes` | String | Yes      | Minimum nodes for autoscaling. |
-| `max_nodes` | String | Yes      | Maximum nodes for autoscaling. |
+| `label`     | String | Yes      | Node pool name. |
+| `size`      | String | Yes      | Plan ID for the worker node size. |
+| `count`     | String | Yes      | Initial number of worker nodes. |
+| `min_nodes` | String | Yes      | Minimum nodes (for autoscaling). |
+| `max_nodes` | String | Yes      | Maximum nodes (for autoscaling). |
 | `disk_size` | String | No       | Additional EBS disk size in GB. |
 | `disk_type` | String | No       | EBS disk type: `nvme` or `ssd`. |
 
@@ -106,8 +165,15 @@ output "kubeconfig" {
 
 | Attribute    | Type   | Description |
 |--------------|--------|-------------|
-| `id`         | String | Unique cluster ID. |
-| `status`     | String | Cluster status (e.g. `Active`, `Pending`). |
+| `id`         | String | Unique cluster ID. Use this in `utho_kubernetes_node_pool` and `utho_kubernetes_config`. |
+| `status`     | String | Cluster status (`Active`, `Pending`, etc.). |
 | `ip`         | String | Control plane IP address. |
-| `dns`        | String | Control plane DNS endpoint. |
+| `dns`        | String | Control plane DNS endpoint (used in kubeconfig). |
 | `created_at` | String | Creation timestamp. |
+
+## Notes
+
+- Cluster creation takes 5–15 minutes. The cluster status will be `Pending` during this time.
+- Node pools defined in the `nodepools` block at creation are the initial pools. Use `utho_kubernetes_node_pool` to add more later.
+- Updating the cluster (changing version, network type, etc.) requires destroy and recreate — plan changes carefully for production clusters.
+- Always save the kubeconfig output securely — treat it like a root password.

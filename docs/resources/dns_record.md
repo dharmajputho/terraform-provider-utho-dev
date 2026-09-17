@@ -2,68 +2,88 @@
 page_title: "DNS Record - Utho"
 subcategory: "Networking / DNS"
 description: |-
-  Create and manage DNS records in a Utho DNS zone.
+  Create and manage DNS records inside a Utho DNS zone.
 ---
 
 # utho_dns_record
 
-Creates and manages a DNS record inside a Utho DNS zone. Supports A, AAAA, CNAME, MX, TXT, SRV, and NS record types.
+Creates and manages a DNS record inside a Utho DNS zone. Records tell the DNS system where to route traffic for a hostname.
 
 ## Example Usage
 
-### A record pointing to a load balancer
+### A record — map hostname to IP
 
 ```hcl
+# Root domain → load balancer
 resource "utho_dns_record" "root" {
-  domain   = utho_dns_zone.main.domain
+  domain   = "myapp.com"
   type     = "A"
-  hostname = "@"
+  hostname = "@"           # @ means the root domain
   value    = utho_loadbalancer.main.ip
-  ttl      = "3600"
+  ttl      = "300"
+}
+
+# Subdomain → specific server
+resource "utho_dns_record" "api" {
+  domain   = "myapp.com"
+  type     = "A"
+  hostname = "api"
+  value    = utho_cloud.api.ip
+  ttl      = "300"
 }
 ```
 
-### CNAME record
+### CNAME record — alias one name to another
 
 ```hcl
 resource "utho_dns_record" "www" {
-  domain   = utho_dns_zone.main.domain
+  domain   = "myapp.com"
   type     = "CNAME"
   hostname = "www"
-  value    = "example.com"
+  value    = "myapp.com"
   ttl      = "3600"
 }
 ```
 
-### MX record
+### MX record — email routing
 
 ```hcl
 resource "utho_dns_record" "mail" {
-  domain   = utho_dns_zone.main.domain
+  domain   = "myapp.com"
   type     = "MX"
   hostname = "@"
-  value    = "mail.example.com"
+  value    = "mail.myapp.com"
   ttl      = "3600"
 }
 ```
 
-### TXT record for domain verification
+### TXT record — domain verification and SPF
 
 ```hcl
-resource "utho_dns_record" "verify" {
-  domain   = utho_dns_zone.main.domain
+# SPF record
+resource "utho_dns_record" "spf" {
+  domain   = "myapp.com"
   type     = "TXT"
   hostname = "@"
   value    = "v=spf1 include:_spf.google.com ~all"
   ttl      = "3600"
 }
+
+# Domain verification for an external service
+resource "utho_dns_record" "verify" {
+  domain   = "myapp.com"
+  type     = "TXT"
+  hostname = "_verification"
+  value    = "verify=abc123"
+  ttl      = "3600"
+}
 ```
 
-### AAAA record (IPv6)
+### AAAA record — IPv6
 
 ```hcl
 resource "utho_dns_record" "ipv6" {
-  domain   = utho_dns_zone.main.domain
+  domain   = "myapp.com"
   type     = "AAAA"
   hostname = "@"
   value    = "2001:db8::1"
@@ -75,11 +95,11 @@ resource "utho_dns_record" "ipv6" {
 
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
-| `domain`   | String | Yes      | Domain name the record belongs to. Changing this forces a new resource. |
+| `domain`   | String | Yes      | Domain name the record belongs to (must have a zone). Changing this forces a new resource. |
 | `type`     | String | Yes      | Record type: `A`, `AAAA`, `CNAME`, `MX`, `TXT`, `SRV`, `NS`. |
-| `hostname` | String | Yes      | Hostname for the record. Use `@` for the root domain. |
-| `value`    | String | Yes      | Record value — IP address, target hostname, or text content. |
-| `ttl`      | String | Yes      | Time to live in seconds (e.g. `3600`). |
+| `hostname` | String | Yes      | Subdomain or `@` for the root domain. |
+| `value`    | String | Yes      | Record value — IP address, target hostname, or text. |
+| `ttl`      | String | Yes      | Time-to-live in seconds. Lower values propagate changes faster; higher values reduce DNS load. |
 
 ## Attribute Reference
 
@@ -87,8 +107,11 @@ resource "utho_dns_record" "ipv6" {
 |-----------|--------|-------------|
 | `id`      | String | Unique DNS record ID assigned by Utho. |
 
-## Notes
+## TTL Guidelines
 
-- Changing `domain` destroys and recreates the record.
-- Changing `type`, `hostname`, `value`, or `ttl` updates the record in place.
-- Use `@` as the hostname to create a record for the root domain.
+| TTL | When to Use |
+|-----|-------------|
+| `60` | During migrations or when you expect to change the value soon |
+| `300` | Default for most records |
+| `3600` | Stable records that rarely change |
+| `86400` | Very stable records (nameservers, email) |

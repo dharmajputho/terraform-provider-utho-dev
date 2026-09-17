@@ -2,20 +2,20 @@
 page_title: "Cloud Instance - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
-  Create and manage Utho Cloud instances.
+  Create and manage Utho Cloud instances (virtual machines).
 ---
 
 # utho_cloud
 
-Creates and manages a Utho Cloud instance (virtual machine).
+Creates and manages a Utho Cloud instance — a virtual machine running in one of Utho's data centers. You can deploy from standard OS images, marketplace stacks, snapshots, backups, or custom ISOs.
 
-Supports deployment from OS images, snapshots, backups, ISOs, and marketplace stacks.
-Supports password and SSH key authentication, VPC networking, EBS volumes, and firewall
-attachment at creation time.
+Once created, the instance ID is used by other resources like `utho_cloud_snapshot`, `utho_cloud_ebs`, and `utho_firewall_server`.
 
 ## Example Usage
 
-### Basic instance with password authentication
+### Minimal instance with password login
+
+The simplest possible setup — one Ubuntu server with a root password.
 
 ```hcl
 resource "utho_cloud" "web" {
@@ -24,79 +24,103 @@ resource "utho_cloud" "web" {
   planid          = "10360"
   billingcycle    = "hourly"
   auth            = "option1"
-  root_password   = "StrongP@ssw0rd!"
+  root_password   = var.root_password
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "true"
-  cpumodel        = "amd"
-  support         = "unmanaged"
 }
+
+output "ip" { value = utho_cloud.web.ip }
 ```
 
-### Instance with SSH key authentication
+### Instance with SSH key authentication (recommended)
+
+Using SSH keys is more secure than password auth. First import the key with `utho_ssh_key`, then reference it here.
 
 ```hcl
+resource "utho_ssh_key" "deploy" {
+  name   = "deploy-key"
+  sshkey = file("~/.ssh/id_ed25519.pub")
+}
+
 resource "utho_cloud" "app" {
   hostname        = "app-01.mhc"
-  dcslug          = "innoida"
-  planid          = "10315"
-  billingcycle    = "monthly"
+  dcslug          = "inmumbaizone2"
+  planid          = "10360"
+  billingcycle    = "hourly"
   auth            = "option2"
-  sshkeys         = "74133628"
-  image           = "ubuntu-25.04-x86_64"
+  sshkeys         = utho_ssh_key.deploy.id
+  image           = "ubuntu-22.04-x86_64"
   enable_publicip = "true"
-  cpumodel        = "intel"
-  firewall        = "23437038"
-  support         = "unmanaged"
 }
 ```
 
-### Multiple instances with count
+### Scale horizontally with count
+
+Create multiple identical servers in one block. Each gets a unique hostname.
 
 ```hcl
-resource "utho_cloud" "workers" {
+resource "utho_cloud" "worker" {
   count = 5
 
   hostname        = "worker-${count.index + 1}.mhc"
   dcslug          = "inmumbaizone2"
   planid          = "10360"
   billingcycle    = "hourly"
-  auth            = "option1"
-  root_password   = "StrongP@ssw0rd!"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "true"
 }
 
 output "worker_ips" {
-  value = utho_cloud.workers[*].ip
+  value = utho_cloud.worker[*].ip
 }
 ```
 
-### Instance inside a VPC with EBS volumes
+### Instance inside a private VPC
+
+Attach the instance to a VPC subnet for private networking. Set `enable_publicip = "false"` for fully private instances that communicate only over the VPC.
+
+```hcl
+resource "utho_cloud" "backend" {
+  hostname        = "backend-01.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10355"
+  billingcycle    = "monthly"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
+  image           = "ubuntu-22.04-x86_64"
+  enable_publicip = "false"
+  vpc             = utho_subnet.private.id
+  firewall        = utho_firewall.backend.id
+}
+```
+
+### Instance with additional EBS storage
+
+Attach extra block volumes at creation time for databases, logs, or large datasets.
 
 ```hcl
 resource "utho_cloud" "db" {
   hostname        = "db-01.mhc"
-  dcslug          = "innoida"
+  dcslug          = "inmumbaizone2"
   planid          = "10355"
-  billingcycle    = "12month"
-  auth            = "option1"
-  root_password   = "StrongP@ssw0rd!"
+  billingcycle    = "monthly"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "false"
-  vpc             = "3a276678-6c71-4203-a788-905930a728be"
-  firewall        = "23436544"
 
   ebs = [
-    {
-      id   = "1"
-      disk = 80
-      type = "nvme"
-    }
+    { id = "1", disk = 100, type = "nvme" },
+    { id = "2", disk = 500, type = "ssd"  },
   ]
 }
 ```
 
-### Deploy from snapshot
+### Restore from a snapshot
+
+Useful for deploying pre-configured golden images or recovering from a snapshot.
 
 ```hcl
 resource "utho_cloud" "restored" {
@@ -105,32 +129,9 @@ resource "utho_cloud" "restored" {
   planid          = "10360"
   billingcycle    = "hourly"
   auth            = "option1"
-  root_password   = "StrongP@ssw0rd!"
+  root_password   = var.root_password
   snapshotid      = "snap-7781"
   enable_publicip = "true"
-}
-```
-
-### Full production stack
-
-```hcl
-resource "utho_cloud" "api" {
-  count = 3
-
-  hostname        = "api-${count.index + 1}.mhc"
-  dcslug          = "inmumbaizone2"
-  planid          = "10360"
-  billingcycle    = "hourly"
-  auth            = "option2"
-  sshkeys         = "74133628"
-  image           = "ubuntu-22.04-x86_64"
-  enable_publicip = "true"
-  firewall        = "23437038"
-  support         = "unmanaged"
-}
-
-output "api_ips" {
-  value = utho_cloud.api[*].ip
 }
 ```
 
@@ -140,81 +141,91 @@ output "api_ips" {
 
 | Argument       | Type   | Description |
 |----------------|--------|-------------|
-| `hostname`     | String | Hostname for the instance. Must be unique within your account. |
-| `dcslug`       | String | Data center slug. See [Data Centers](#data-centers) below. |
-| `planid`       | String | Plan ID for the instance size. |
-| `billingcycle` | String | Billing cycle. Accepted values: `hourly`, `monthly`, `12month`. |
-| `auth`         | String | Authentication method. `option1` = root password, `option2` = SSH key. |
+| `hostname`     | String | Hostname for the instance. |
+| `dcslug`       | String | Data center. See [Data Centers](#data-centers). |
+| `planid`       | String | Plan ID for the instance size (CPU/RAM/disk). |
+| `billingcycle` | String | `hourly`, `monthly`, or `12month`. |
+| `auth`         | String | `option1` = root password, `option2` = SSH key. |
+
+### Authentication — one required
+
+| Argument       | Type   | When Required |
+|----------------|--------|---------------|
+| `root_password` | String | When `auth = "option1"`. **Sensitive.** |
+| `sshkeys`      | String | When `auth = "option2"`. SSH key ID from `utho_ssh_key`. |
+
+### Image source — one required
+
+| Argument     | Type   | Description |
+|--------------|--------|-------------|
+| `image`      | String | OS image slug (e.g. `ubuntu-22.04-x86_64`). |
+| `snapshotid` | String | Deploy from an existing snapshot. |
+| `backupid`   | String | Deploy from an existing backup. |
+| `iso`        | String | Deploy from a custom ISO. |
+| `stack`      | String | Deploy from a marketplace or custom stack. |
 
 ### Optional
 
 | Argument          | Type   | Description |
 |-------------------|--------|-------------|
-| `root_password`   | String | Root password. Required when `auth = option1`. **Sensitive** — never shown in logs or state. |
-| `sshkeys`         | String | SSH key ID. Required when `auth = option2`. Get the ID from the Utho dashboard. |
-| `image`           | String | OS image slug (e.g. `ubuntu-22.04-x86_64`). Required for standard OS deploys. |
-| `enable_publicip` | String | Assign a primary public IP: `true` or `false`. Default: `true`. |
-| `cpumodel`        | String | CPU architecture preference. Accepted values: `amd`, `intel`. |
-| `enablebackup`    | String | Enable automated backups: `true` or `false`. |
-| `support`         | String | Support level. Accepted values: `unmanaged`, `managed`. |
-| `firewall`        | String | Security group ID to attach at creation time. |
-| `vpc`             | String | VPC subnet ID. Deploys the instance inside a private network. |
-| `subnet_required` | String | Whether subnet attachment is required: `true` or `false`. |
-| `snapshotid`      | String | Snapshot ID to deploy from an existing snapshot instead of a base image. |
-| `backupid`        | String | Backup ID to restore from an existing backup. |
-| `iso`             | String | ISO ID to deploy from a custom ISO image. |
-| `stack`           | String | Stack ID to deploy from a marketplace or custom stack. |
-| `delete_ebs`      | Bool   | Delete attached EBS volumes when the instance is destroyed. Default: `false`. |
-| `ebs`             | List   | EBS volumes to attach at creation time. See [EBS Block](#ebs-block) below. |
+| `enable_publicip` | String | `"true"` or `"false"`. Default: `"true"`. |
+| `vpc`             | String | VPC subnet ID. Attaches the instance to a private network. |
+| `firewall`        | String | Security group ID. Attaches at creation time. |
+| `cpumodel`        | String | CPU preference: `amd` or `intel`. |
+| `enablebackup`    | String | Enable automated backups: `"true"` or `"false"`. |
+| `support`         | String | `unmanaged` or `managed`. |
+| `delete_ebs`      | Bool   | Delete attached EBS volumes on destroy. Default: `false`. |
+| `ebs`             | List   | EBS volumes to attach at creation. See [EBS Block](#ebs-block). |
 
 ### EBS Block
 
-The `ebs` block supports the following arguments:
+```hcl
+ebs = [
+  { id = "1", disk = 100, type = "nvme" }
+]
+```
 
-| Argument | Type   | Required | Description |
-|----------|--------|----------|-------------|
-| `id`     | String | Yes      | EBS volume index identifier (e.g. `"1"`, `"2"`). |
-| `disk`   | Number | Yes      | Disk size in GB. |
-| `type`   | String | Yes      | Disk type. Accepted values: `nvme`, `ssd`. |
+| Argument | Type   | Description |
+|----------|--------|-------------|
+| `id`     | String | Sequential identifier (`"1"`, `"2"`, etc.). |
+| `disk`   | Number | Disk size in GB. |
+| `type`   | String | `nvme` (faster) or `ssd`. |
 
 ## Attribute Reference
 
-In addition to all arguments above, the following computed attributes are exported:
-
 | Attribute      | Type   | Description |
 |----------------|--------|-------------|
-| `id`           | String | Unique cloud instance ID assigned by Utho. |
-| `ip`           | String | Primary public IP address of the instance. |
-| `status`       | String | Current instance status (e.g. `Active`). |
-| `power_status` | String | Current power state (e.g. `Running`, `Not_Running`). |
-| `created_at`   | String | Timestamp when the instance was created (UTC). |
+| `id`           | String | Unique instance ID. Used to reference this instance in other resources. |
+| `ip`           | String | Primary public IP address. |
+| `status`       | String | Instance status (e.g. `Active`). |
+| `power_status` | String | Power state (`Running`, `Not_Running`). |
+| `created_at`   | String | Creation timestamp (UTC). |
 
 ## Import
 
-Existing cloud instances can be imported into Terraform state using
-the instance ID from the Utho dashboard.
+Bring an existing instance under Terraform management without recreating it.
 
 ```bash
 terraform import utho_cloud.web 1671990
 ```
 
-After importing, add the required fields (`planid`, `auth`) to your
-`.tf` file and run `terraform plan` to reconcile the state.
+After importing, add the required arguments to your `.tf` file and run `terraform plan` to sync state:
 
 ```hcl
 resource "utho_cloud" "web" {
-  hostname      = "web-01.mhc"
-  dcslug        = "inmumbaizone2"
-  planid        = "10360"    # add after import
-  billingcycle  = "hourly"
-  auth          = "option1"  # add after import
+  hostname     = "web-01.mhc"
+  dcslug       = "inmumbaizone2"
+  planid       = "10360"
+  billingcycle = "hourly"
+  auth         = "option2"
+  sshkeys      = utho_ssh_key.deploy.id
 }
 ```
 
 ## Data Centers
 
-| Slug             | Location           |
-|------------------|--------------------|
-| `innoida`        | Noida, India       |
-| `inmumbaizone2`  | Mumbai, India      |
-| `inbangalore`    | Bangalore, India   |
+| Slug | Location |
+|------|----------|
+| `innoida` | Delhi (Noida), India |
+| `inmumbaizone2` | Mumbai, India |
+| `inbangalore` | Bangalore, India |

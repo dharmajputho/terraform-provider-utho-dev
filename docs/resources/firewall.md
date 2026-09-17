@@ -2,39 +2,28 @@
 page_title: "Security Group - Utho"
 subcategory: "Networking / Security"
 description: |-
-  Create and manage Utho Security Groups.
+  Create and manage Utho Security Groups (firewall rules for cloud instances).
 ---
 
 # utho_firewall
 
-Creates and manages a Utho Security Group. A Security Group is a set of
-inbound and outbound rules that control traffic to and from cloud instances.
+Creates and manages a Utho Security Group — a stateful firewall that controls what traffic can reach your cloud instances. Security groups are attached to instances and define which ports and protocols are allowed in and out.
 
-Manage rules using `utho_firewall_rule` and attach instances using
-`utho_firewall_server`.
+A security group on its own does nothing. Add rules with `utho_firewall_rule` and attach it to instances with `utho_firewall_server`.
 
 ## Example Usage
 
-### Basic Security Group
+### Web server security group
+
+Allow HTTP and HTTPS from anywhere, SSH only from a trusted IP range.
 
 ```hcl
 resource "utho_firewall" "web" {
-  name = "web-security-group"
+  name = "web-sg"
 }
 
-output "security_group_id" {
-  value = utho_firewall.web.id
-}
-```
-
-### Security Group with rules and server attachment
-
-```hcl
-resource "utho_firewall" "web" {
-  name = "web-security-group"
-}
-
-resource "utho_firewall_rule" "allow_http" {
+# Allow HTTP from anywhere
+resource "utho_firewall_rule" "http" {
   firewall_id  = utho_firewall.web.id
   type         = "incoming"
   service      = "HTTP"
@@ -45,7 +34,8 @@ resource "utho_firewall_rule" "allow_http" {
   source_range = "0.0.0.0/0"
 }
 
-resource "utho_firewall_rule" "allow_https" {
+# Allow HTTPS from anywhere
+resource "utho_firewall_rule" "https" {
   firewall_id  = utho_firewall.web.id
   type         = "incoming"
   service      = "HTTPS"
@@ -56,18 +46,20 @@ resource "utho_firewall_rule" "allow_https" {
   source_range = "0.0.0.0/0"
 }
 
-resource "utho_firewall_rule" "allow_ssh" {
+# Allow SSH only from your office IP
+resource "utho_firewall_rule" "ssh" {
   firewall_id  = utho_firewall.web.id
   type         = "incoming"
   service      = "SSH"
   protocol     = "tcp"
   port         = "22"
   port_range   = "22"
-  addresses    = "10.0.0.0/8"
-  source_range = "10.0.0.0/8"
+  addresses    = "203.0.113.0/24"
+  source_range = "203.0.113.0/24"
 }
 
-resource "utho_firewall_rule" "allow_all_outbound" {
+# Allow all outbound traffic
+resource "utho_firewall_rule" "outbound" {
   firewall_id  = utho_firewall.web.id
   type         = "outgoing"
   service      = "ALL TCP"
@@ -78,9 +70,32 @@ resource "utho_firewall_rule" "allow_all_outbound" {
   source_range = "0.0.0.0/0"
 }
 
-resource "utho_firewall_server" "attach" {
+# Attach to all web servers
+resource "utho_firewall_server" "web" {
+  count       = length(utho_cloud.web)
   firewall_id = utho_firewall.web.id
-  cloud_id    = utho_cloud.app.id
+  cloud_id    = utho_cloud.web[count.index].id
+}
+```
+
+### Database security group — private only
+
+Only allow connections from within your VPC, block all public access.
+
+```hcl
+resource "utho_firewall" "db" {
+  name = "database-sg"
+}
+
+resource "utho_firewall_rule" "postgres" {
+  firewall_id  = utho_firewall.db.id
+  type         = "incoming"
+  service      = "CUSTOM"
+  protocol     = "tcp"
+  port         = "5432"
+  port_range   = "5432"
+  addresses    = "10.0.0.0/8"   # your VPC CIDR
+  source_range = "10.0.0.0/8"
 }
 ```
 
@@ -88,13 +103,20 @@ resource "utho_firewall_server" "attach" {
 
 | Argument | Type   | Required | Description |
 |----------|--------|----------|-------------|
-| `name`   | String | Yes      | Name of the Security Group. |
+| `name`   | String | Yes      | Security group name. Can be updated in place. |
 
 ## Attribute Reference
 
-| Attribute      | Type   | Description |
-|----------------|--------|-------------|
-| `id`           | String | Unique Security Group ID. |
-| `created_at`   | String | Timestamp when the Security Group was created. |
-| `rule_count`   | String | Number of rules currently in this Security Group. |
-| `servers_count`| String | Number of servers currently attached. |
+| Attribute       | Type   | Description |
+|-----------------|--------|-------------|
+| `id`            | String | Unique Security Group ID. Use this in `utho_firewall_rule` and `utho_firewall_server`. |
+| `created_at`    | String | Creation timestamp. |
+| `rule_count`    | String | Number of rules attached to this security group. |
+| `servers_count` | String | Number of instances currently using this security group. |
+
+## Notes
+
+- Security groups are stateful — if you allow inbound port 80, the return traffic is automatically allowed.
+- Rules apply within a few seconds after attaching to an instance.
+- One instance can have multiple security groups via multiple `utho_firewall_server` resources.
+- A security group can be attached to multiple instances — useful for shared rules across a fleet.
