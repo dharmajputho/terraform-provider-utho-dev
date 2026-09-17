@@ -19,13 +19,13 @@ import (
 type KubernetesResource struct{ client *client.Client }
 
 type K8sNodePoolModel struct {
-	Label    types.String `tfsdk:"label"`
-	Size     types.String `tfsdk:"size"`
-	Count    types.String `tfsdk:"count"`
-	MinNodes types.String `tfsdk:"min_nodes"`
-	MaxNodes types.String `tfsdk:"max_nodes"`
-	DiskSize types.String `tfsdk:"disk_size"`
-	DiskType types.String `tfsdk:"disk_type"`
+	Label     types.String `tfsdk:"label"`
+	Size      types.String `tfsdk:"size"`
+	NodeCount types.String `tfsdk:"node_count"`
+	MinNodes  types.String `tfsdk:"min_nodes"`
+	MaxNodes  types.String `tfsdk:"max_nodes"`
+	DiskSize  types.String `tfsdk:"disk_size"`
+	DiskType  types.String `tfsdk:"disk_type"`
 }
 
 type KubernetesModel struct {
@@ -69,13 +69,13 @@ func (r *KubernetesResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Description: "Initial node pools for the cluster.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"label":     schema.StringAttribute{Required: true, Description: "Node pool label."},
-						"size":      schema.StringAttribute{Required: true, Description: "Plan ID for worker node size."},
-						"count":     schema.StringAttribute{Required: true, Description: "Number of worker nodes."},
-						"min_nodes": schema.StringAttribute{Required: true, Description: "Minimum nodes for autoscaling."},
-						"max_nodes": schema.StringAttribute{Required: true, Description: "Maximum nodes for autoscaling."},
-						"disk_size": schema.StringAttribute{Optional: true, Description: "Additional EBS disk size in GB."},
-						"disk_type": schema.StringAttribute{Optional: true, Description: "EBS disk type: nvme or ssd."},
+						"label":      schema.StringAttribute{Required: true, Description: "Node pool label."},
+						"size":       schema.StringAttribute{Required: true, Description: "Plan ID for worker node size."},
+						"node_count": schema.StringAttribute{Required: true, Description: "Number of worker nodes."},
+						"min_nodes":  schema.StringAttribute{Required: true, Description: "Minimum nodes for autoscaling."},
+						"max_nodes":  schema.StringAttribute{Required: true, Description: "Maximum nodes for autoscaling."},
+						"disk_size":  schema.StringAttribute{Optional: true, Description: "Additional EBS disk size in GB."},
+						"disk_type":  schema.StringAttribute{Optional: true, Description: "EBS disk type: nvme or ssd."},
 					},
 				},
 			},
@@ -107,7 +107,7 @@ func (r *KubernetesResource) Create(ctx context.Context, req resource.CreateRequ
 		pool := client.KubernetesNodePool{
 			Label:    np.Label.ValueString(),
 			Size:     np.Size.ValueString(),
-			Count:    np.Count.ValueString(),
+			Count:    np.NodeCount.ValueString(),
 			MinNodes: np.MinNodes.ValueString(),
 			MaxNodes: np.MaxNodes.ValueString(),
 		}
@@ -193,7 +193,7 @@ type KubernetesNodePoolModel struct {
 	PoolID    types.String `tfsdk:"pool_id"`
 	Label     types.String `tfsdk:"label"`
 	Size      types.String `tfsdk:"size"`
-	Count     types.String `tfsdk:"count"`
+	NodeCount types.String `tfsdk:"node_count"`
 	MinNodes  types.String `tfsdk:"min_nodes"`
 	MaxNodes  types.String `tfsdk:"max_nodes"`
 	DiskSize  types.String `tfsdk:"disk_size"`
@@ -215,9 +215,9 @@ func (r *KubernetesNodePoolResource) Schema(_ context.Context, _ resource.Schema
 			"pool_id":    schema.StringAttribute{Computed: true, Description: "Node pool ID assigned by Utho.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"label":      schema.StringAttribute{Required: true, Description: "Node pool label.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"size":       schema.StringAttribute{Required: true, Description: "Plan ID for worker node size.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"count":      schema.StringAttribute{Required: true, Description: "Desired number of worker nodes."},
-			"min_nodes":  schema.StringAttribute{Required: true, Description: "Minimum nodes for autoscaling."},
-			"max_nodes":  schema.StringAttribute{Required: true, Description: "Maximum nodes for autoscaling."},
+			"node_count": schema.StringAttribute{Required: true, Description: "Desired number of worker nodes. Updatable."},
+			"min_nodes":  schema.StringAttribute{Required: true, Description: "Minimum nodes for autoscaling. Updatable."},
+			"max_nodes":  schema.StringAttribute{Required: true, Description: "Maximum nodes for autoscaling. Updatable."},
 			"disk_size":  schema.StringAttribute{Optional: true, Description: "EBS disk size in GB.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"disk_type":  schema.StringAttribute{Optional: true, Description: "EBS disk type: nvme or ssd.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		},
@@ -246,7 +246,7 @@ func (r *KubernetesNodePoolResource) Create(ctx context.Context, req resource.Cr
 	pool := client.KubernetesNodePool{
 		Label:    plan.Label.ValueString(),
 		Size:     plan.Size.ValueString(),
-		Count:    plan.Count.ValueString(),
+		Count:    plan.NodeCount.ValueString(),
 		MinNodes: plan.MinNodes.ValueString(),
 		MaxNodes: plan.MaxNodes.ValueString(),
 	}
@@ -280,7 +280,7 @@ func (r *KubernetesNodePoolResource) Update(ctx context.Context, req resource.Up
 	}
 
 	err := r.client.UpdateNodePool(plan.ClusterID.ValueString(), plan.PoolID.ValueString(), &client.NodePoolUpdateRequest{
-		Count:    plan.Count.ValueString(),
+		Count:    plan.NodeCount.ValueString(),
 		MinNodes: plan.MinNodes.ValueString(),
 		MaxNodes: plan.MaxNodes.ValueString(),
 	})
@@ -297,8 +297,6 @@ func (r *KubernetesNodePoolResource) Delete(ctx context.Context, req resource.De
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	// Delete = scale to 0
 	if err := r.client.DeleteNodePool(state.ClusterID.ValueString(), state.PoolID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting node pool", fmt.Sprintf("%s", err))
 	}
