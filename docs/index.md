@@ -197,3 +197,13 @@ export UTHO_API_KEY="your-api-key"
 |----------|-------------|
 | [utho_alert_contact](resources/alert_contact) | Create and manage alert contacts |
 | [utho_alert](resources/alert) | Create and manage monitoring alert rules |
+
+
+### Container Registry
+
+| Resource | Description |
+|----------|-------------|
+| [utho_container_registry](resources/container_registry) | Create and manage Container Registries |
+| [utho_container_registry_robot](resources/container_registry_robot) | Create and manage robot accounts |
+| [utho_container_registry_webhook](resources/container_registry_webhook) | Create and manage webhooks |
+| [utho_container_registry_immutable_rule](resources/container_registry_immutable_rule) | Create immutable tag rules |

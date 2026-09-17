@@ -119,6 +119,11 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewIAMUserResource,                 // utho_iam_user
 		resources.NewProjectResource,                 // utho_project
 		resources.NewProjectMemberResource,           // utho_project_member
+		resources.NewContainerRegistryResource,       // utho_container_registry
+		resources.NewRegistryRobotResource,           // utho_container_registry_robot
+		resources.NewRegistryWebhookResource,         // utho_container_registry_webhook
+		resources.NewRegistryImmutableRuleResource,   // utho_container_registry_immutable_rule
+
 	}
 }
 
