@@ -7,34 +7,71 @@ description: |-
 
 # utho_cloud
 
-Creates and manages a Utho Cloud instance — a virtual machine running in one of Utho's data centers. You can deploy from standard OS images, marketplace stacks, snapshots, backups, or custom ISOs.
+Creates and manages a Utho Cloud instance — a virtual machine running in one of Utho's data centers. You can deploy from standard OS images, snapshots, backups, ISOs, or marketplace stacks.
 
-Once created, the instance ID is used by other resources like `utho_cloud_snapshot`, `utho_cloud_ebs`, and `utho_firewall_server`.
+## Before You Begin
+
+Creating a cloud instance requires several IDs that you can't guess — plan IDs, image slugs, DC zone slugs, and VPC subnet IDs. Use these data sources to discover valid values before writing your resource block:
+
+| What You Need | Data Source | Key Attribute |
+|---------------|-------------|---------------|
+| Data center slug (`dcslug`) | [utho_cloud_dczones](../data-sources/cloud_dczones) | `zones[*].slug` |
+| Plan ID (`planid`) | [utho_cloud_plans](../data-sources/cloud_plans) | `plans[*].id` |
+| OS image slug (`image`) | [utho_cloud_images](../data-sources/cloud_images) | `images[*].image` |
+| Snapshot ID (`snapshotid`) | [utho_cloud_snapshots](../data-sources/cloud_snapshots) | `snapshots[*].id` |
+| ISO name (`iso`) | [utho_cloud_isos](../data-sources/cloud_isos) | `isos[*].name` |
+| VPC subnet ID (`vpc`) | [utho_vpcs](../data-sources/vpcs) | `vpcs[*].subnets[*].id` |
+| SSH key ID (`sshkeys`) | [utho_clouds](../data-sources/clouds) | Use `utho_ssh_key.name.id` after creating |
+| Security group ID (`firewall`) | Create first with [utho_firewall](firewall) | `utho_firewall.name.id` |
+
+### Quick lookup example
+
+```hcl
+# Step 1 — Find active DC zones
+data "utho_cloud_dczones" "all" {}
+
+# Step 2 — Find available plans in your chosen DC
+data "utho_cloud_plans" "mumbai" {
+  dcslug = "inmumbaizone2"
+}
+
+# Step 3 — Find available OS images
+data "utho_cloud_images" "ubuntu" {
+  distro = "ubuntu"
+}
+
+# Run: terraform apply
+# Then check outputs to pick the right IDs
+output "zones"  { value = data.utho_cloud_dczones.all.zones[*].slug }
+output "plans"  { value = [for p in data.utho_cloud_plans.mumbai.plans : { id = p.id, cpu = p.cpu, ram = p.ram, disk = p.disk } if p.disk != "0"] }
+output "images" { value = data.utho_cloud_images.ubuntu.images[*].image }
+```
+
+---
 
 ## Example Usage
 
 ### Minimal instance with password login
 
-The simplest possible setup — one Ubuntu server with a root password.
-
 ```hcl
 resource "utho_cloud" "web" {
   hostname        = "web-01.mhc"
   dcslug          = "inmumbaizone2"
-  planid          = "10360"
+  planid          = "10308"        # 2 vCPU / 4 GB / 80 GB — use data.utho_cloud_plans to find others
   billingcycle    = "hourly"
   auth            = "option1"
   root_password   = var.root_password
-  image           = "ubuntu-22.04-x86_64"
+  image           = "ubuntu-22.04-x86_64"   # use data.utho_cloud_images to find others
   enable_publicip = "true"
 }
 
 output "ip" { value = utho_cloud.web.ip }
+output "id" { value = utho_cloud.web.id }
 ```
 
 ### Instance with SSH key authentication (recommended)
 
-Using SSH keys is more secure than password auth. First import the key with `utho_ssh_key`, then reference it here.
+SSH key authentication is more secure than password auth and works seamlessly with automation tools. Create the key with `utho_ssh_key` first, then reference it here.
 
 ```hcl
 resource "utho_ssh_key" "deploy" {
@@ -45,26 +82,37 @@ resource "utho_ssh_key" "deploy" {
 resource "utho_cloud" "app" {
   hostname        = "app-01.mhc"
   dcslug          = "inmumbaizone2"
-  planid          = "10360"
+  planid          = "10308"
   billingcycle    = "hourly"
   auth            = "option2"
   sshkeys         = utho_ssh_key.deploy.id
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "true"
 }
+
+# Connect after deployment
+# ssh root@<ip>  (or ubuntu@<ip> depending on image)
+output "ssh_command" {
+  value = "ssh root@${utho_cloud.app.ip}"
+}
 ```
 
 ### Scale horizontally with count
 
-Create multiple identical servers in one block. Each gets a unique hostname.
+Create multiple identical servers in one block. Each gets a unique hostname via `count.index`.
 
 ```hcl
+resource "utho_ssh_key" "deploy" {
+  name   = "deploy-key"
+  sshkey = file("~/.ssh/id_ed25519.pub")
+}
+
 resource "utho_cloud" "worker" {
   count = 5
 
   hostname        = "worker-${count.index + 1}.mhc"
   dcslug          = "inmumbaizone2"
-  planid          = "10360"
+  planid          = "10308"
   billingcycle    = "hourly"
   auth            = "option2"
   sshkeys         = utho_ssh_key.deploy.id
@@ -79,37 +127,110 @@ output "worker_ips" {
 
 ### Instance inside a private VPC
 
-Attach the instance to a VPC subnet for private networking. Set `enable_publicip = "false"` for fully private instances that communicate only over the VPC.
+Attach the instance to a VPC subnet for private networking. Use `data.utho_vpcs` to find your subnet ID.
 
 ```hcl
+# Find your VPC and subnet first
+data "utho_vpcs" "mumbai" {
+  dcslug = "inmumbaizone2"
+}
+
+locals {
+  # Get subnet ID of a specific VPC by name
+  my_subnet = one([
+    for vpc in data.utho_vpcs.mumbai.vpcs :
+    vpc.subnets[0].id
+    if vpc.name == "production" && length(vpc.subnets) > 0
+  ])
+}
+
 resource "utho_cloud" "backend" {
   hostname        = "backend-01.mhc"
   dcslug          = "inmumbaizone2"
-  planid          = "10355"
+  planid          = "10308"
   billingcycle    = "monthly"
   auth            = "option2"
   sshkeys         = utho_ssh_key.deploy.id
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "false"
-  vpc             = utho_subnet.private.id
-  firewall        = utho_firewall.backend.id
+  vpc             = local.my_subnet
+}
+```
+
+### Instance with security group
+
+Create a security group, add rules, then attach to the instance.
+
+```hcl
+resource "utho_firewall" "web" {
+  name = "web-sg"
+}
+
+resource "utho_firewall_rule" "http" {
+  firewall_id  = utho_firewall.web.id
+  type         = "incoming"
+  service      = "HTTP"
+  protocol     = "tcp"
+  port         = "80"
+  port_range   = "80"
+  addresses    = "0.0.0.0/0"
+  source_range = "0.0.0.0/0"
+}
+
+resource "utho_cloud" "web" {
+  hostname        = "web-01.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10308"
+  billingcycle    = "hourly"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
+  image           = "ubuntu-22.04-x86_64"
+  enable_publicip = "true"
+  firewall        = utho_firewall.web.id   # attach at creation
+}
+```
+
+### Deploy from a snapshot
+
+Useful for deploying pre-configured golden images. Use `data.utho_cloud_snapshots` to find your snapshot ID.
+
+```hcl
+data "utho_cloud_snapshots" "all" {}
+
+locals {
+  golden = one([
+    for s in data.utho_cloud_snapshots.all.snapshots :
+    s if s.name == "golden-image-v2" && s.status == "Active"
+  ])
+}
+
+resource "utho_cloud" "restored" {
+  hostname        = "restored-01.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10308"
+  billingcycle    = "hourly"
+  auth            = "option1"
+  root_password   = var.root_password
+  snapshotid      = local.golden.id
+  enable_publicip = "true"
 }
 ```
 
 ### Instance with additional EBS storage
 
-Attach extra block volumes at creation time for databases, logs, or large datasets.
+Attach extra block volumes at creation for databases, logs, or large datasets. Use plans with `disk = "0"` for EBS-only setups.
 
 ```hcl
 resource "utho_cloud" "db" {
   hostname        = "db-01.mhc"
   dcslug          = "inmumbaizone2"
-  planid          = "10355"
+  planid          = "10336"   # 2 vCPU / 4 GB / no included disk — EBS plan
   billingcycle    = "monthly"
   auth            = "option2"
   sshkeys         = utho_ssh_key.deploy.id
   image           = "ubuntu-22.04-x86_64"
   enable_publicip = "false"
+  delete_ebs      = true   # delete EBS volumes when instance is destroyed
 
   ebs = [
     { id = "1", disk = 100, type = "nvme" },
@@ -118,21 +239,65 @@ resource "utho_cloud" "db" {
 }
 ```
 
-### Restore from a snapshot
+### Complete production setup — with data sources
 
-Useful for deploying pre-configured golden images or recovering from a snapshot.
+A real-world example that uses data sources to dynamically discover all IDs rather than hardcoding them.
 
 ```hcl
-resource "utho_cloud" "restored" {
-  hostname        = "restored-01.mhc"
-  dcslug          = "inmumbaizone2"
-  planid          = "10360"
-  billingcycle    = "hourly"
-  auth            = "option1"
-  root_password   = var.root_password
-  snapshotid      = "snap-7781"
-  enable_publicip = "true"
+# Discover available resources
+data "utho_cloud_plans" "mumbai" { dcslug = "inmumbaizone2" }
+data "utho_cloud_images" "ubuntu" { distro = "ubuntu" }
+data "utho_vpcs" "mumbai" { dcslug = "inmumbaizone2" }
+
+locals {
+  # Pick cheapest plan with disk included
+  plan = [
+    for p in data.utho_cloud_plans.mumbai.plans :
+    p if p.disk != "0" && p.slug == "basic"
+  ][0]
+
+  # Ubuntu 22.04 LTS image
+  image = one([
+    for img in data.utho_cloud_images.ubuntu.images :
+    img if img.image == "ubuntu-22.04-x86_64"
+  ])
+
+  # Public subnet from production VPC
+  subnet = one([
+    for vpc in data.utho_vpcs.mumbai.vpcs :
+    vpc.subnets[0]
+    if vpc.name == "production" && length(vpc.subnets) > 0
+  ])
 }
+
+resource "utho_ssh_key" "deploy" {
+  name   = "deploy-key"
+  sshkey = file("~/.ssh/id_ed25519.pub")
+}
+
+resource "utho_firewall" "web" { name = "web-sg" }
+resource "utho_firewall_rule" "http" {
+  firewall_id = utho_firewall.web.id
+  type = "incoming"; service = "HTTP"; protocol = "tcp"
+  port = "80"; port_range = "80"; addresses = "0.0.0.0/0"; source_range = "0.0.0.0/0"
+}
+
+resource "utho_cloud" "web" {
+  count = 3
+
+  hostname        = "web-${count.index + 1}.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = local.plan.id      # ← from data source
+  billingcycle    = "hourly"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
+  image           = local.image.image  # ← from data source
+  enable_publicip = "true"
+  vpc             = local.subnet.id    # ← from data source
+  firewall        = utho_firewall.web.id
+}
+
+output "server_ips" { value = utho_cloud.web[*].ip }
 ```
 
 ## Argument Reference
@@ -142,35 +307,35 @@ resource "utho_cloud" "restored" {
 | Argument       | Type   | Description |
 |----------------|--------|-------------|
 | `hostname`     | String | Hostname for the instance. |
-| `dcslug`       | String | Data center. See [Data Centers](#data-centers). |
-| `planid`       | String | Plan ID for the instance size (CPU/RAM/disk). |
+| `dcslug`       | String | Data center slug. See [utho_cloud_dczones](../data-sources/cloud_dczones) for valid values. |
+| `planid`       | String | Plan ID for the instance size. See [utho_cloud_plans](../data-sources/cloud_plans) for valid values. |
 | `billingcycle` | String | `hourly`, `monthly`, or `12month`. |
-| `auth`         | String | `option1` = root password, `option2` = SSH key. |
+| `auth`         | String | `option1` = root password login, `option2` = SSH key login. |
 
 ### Authentication — one required
 
-| Argument       | Type   | When Required |
-|----------------|--------|---------------|
-| `root_password` | String | When `auth = "option1"`. **Sensitive.** |
-| `sshkeys`      | String | When `auth = "option2"`. SSH key ID from `utho_ssh_key`. |
+| Argument       | Type   | When Required | Description |
+|----------------|--------|---------------|-------------|
+| `root_password`| String | `auth = "option1"` | Root password. **Sensitive.** |
+| `sshkeys`      | String | `auth = "option2"` | SSH key ID from `utho_ssh_key`. |
 
 ### Image source — one required
 
 | Argument     | Type   | Description |
 |--------------|--------|-------------|
-| `image`      | String | OS image slug (e.g. `ubuntu-22.04-x86_64`). |
-| `snapshotid` | String | Deploy from an existing snapshot. |
-| `backupid`   | String | Deploy from an existing backup. |
-| `iso`        | String | Deploy from a custom ISO. |
-| `stack`      | String | Deploy from a marketplace or custom stack. |
+| `image`      | String | OS image slug. See [utho_cloud_images](../data-sources/cloud_images) for valid values. |
+| `snapshotid` | String | Snapshot ID to restore from. See [utho_cloud_snapshots](../data-sources/cloud_snapshots). |
+| `backupid`   | String | Backup ID to restore from. |
+| `iso`        | String | ISO name for custom OS installs. See [utho_cloud_isos](../data-sources/cloud_isos). |
+| `stack`      | String | Marketplace stack ID. |
 
 ### Optional
 
 | Argument          | Type   | Description |
 |-------------------|--------|-------------|
 | `enable_publicip` | String | `"true"` or `"false"`. Default: `"true"`. |
-| `vpc`             | String | VPC subnet ID. Attaches the instance to a private network. |
-| `firewall`        | String | Security group ID. Attaches at creation time. |
+| `vpc`             | String | VPC subnet ID. See [utho_vpcs](../data-sources/vpcs) for valid values. |
+| `firewall`        | String | Security group ID to attach at creation. |
 | `cpumodel`        | String | CPU preference: `amd` or `intel`. |
 | `enablebackup`    | String | Enable automated backups: `"true"` or `"false"`. |
 | `support`         | String | `unmanaged` or `managed`. |
@@ -181,24 +346,25 @@ resource "utho_cloud" "restored" {
 
 ```hcl
 ebs = [
-  { id = "1", disk = 100, type = "nvme" }
+  { id = "1", disk = 100, type = "nvme" },
+  { id = "2", disk = 500, type = "ssd"  },
 ]
 ```
 
 | Argument | Type   | Description |
 |----------|--------|-------------|
-| `id`     | String | Sequential identifier (`"1"`, `"2"`, etc.). |
+| `id`     | String | Sequential identifier: `"1"`, `"2"`, etc. |
 | `disk`   | Number | Disk size in GB. |
-| `type`   | String | `nvme` (faster) or `ssd`. |
+| `type`   | String | `nvme` (faster, recommended) or `ssd`. |
 
 ## Attribute Reference
 
 | Attribute      | Type   | Description |
 |----------------|--------|-------------|
-| `id`           | String | Unique instance ID. Used to reference this instance in other resources. |
-| `ip`           | String | Primary public IP address. |
+| `id`           | String | Unique instance ID. Referenced by `utho_firewall_server`, `utho_cloud_snapshot`, `utho_loadbalancer_backend`, etc. |
+| `ip`           | String | Primary public IP address. Point your DNS A record here. |
 | `status`       | String | Instance status (e.g. `Active`). |
-| `power_status` | String | Power state (`Running`, `Not_Running`). |
+| `power_status` | String | Power state (`Running`, `Shutdown`). |
 | `created_at`   | String | Creation timestamp (UTC). |
 
 ## Import
@@ -209,23 +375,25 @@ Bring an existing instance under Terraform management without recreating it.
 terraform import utho_cloud.web 1671990
 ```
 
-After importing, add the required arguments to your `.tf` file and run `terraform plan` to sync state:
+After importing, fill in the required fields in your `.tf` file and run `terraform plan`:
 
 ```hcl
 resource "utho_cloud" "web" {
   hostname     = "web-01.mhc"
   dcslug       = "inmumbaizone2"
-  planid       = "10360"
+  planid       = "10308"
   billingcycle = "hourly"
   auth         = "option2"
   sshkeys      = utho_ssh_key.deploy.id
 }
 ```
 
-## Data Centers
+~> **Note:** After import, write-only fields (`auth`, `planid`, `image`, `root_password`) will show as diffs in `terraform plan` because the API does not return them on GET requests. This is expected — fill them in manually and the diff will resolve.
 
-| Slug | Location |
-|------|----------|
-| `innoida` | Delhi (Noida), India |
-| `inmumbaizone2` | Mumbai, India |
-| `inbangalore` | Bangalore, India |
+## Notes
+
+- Changing `hostname`, `dcslug`, `planid`, or `image` requires destroying and recreating the instance.
+- For zero-downtime updates, create the new instance first, migrate traffic, then destroy the old one.
+- Use `utho_cloud_power` to start/stop/reboot without recreating.
+- Use `utho_cloud_resize` to change the plan after creation.
+- Use `utho_cloud_snapshot` to take snapshots before destructive operations.
