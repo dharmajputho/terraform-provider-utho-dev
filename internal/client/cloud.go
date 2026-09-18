@@ -163,8 +163,9 @@ func (c *Client) DeleteCloud(cloudID string, hostname string, deleteEBS bool) er
 		ebsParam = "yes"
 	}
 
-	endpoint := fmt.Sprintf("/cloud/%s/destroy?ebs_delete=%s&hostname=%s", cloudID, ebsParam, hostname)
-	respBytes, err := c.Delete(endpoint)
+	endpoint := fmt.Sprintf("/cloud/%s/destroy?ebs_delete=%s", cloudID, ebsParam)
+	payload := map[string]string{"confirm": hostname}
+	respBytes, err := c.doRequest("DELETE", endpoint, payload)
 	if err != nil {
 		return fmt.Errorf("failed to delete cloud instance: %w", err)
 	}
