@@ -157,13 +157,13 @@ func (c *Client) GetCloud(cloudID string) (*CloudInstance, error) {
 }
 
 // DeleteCloud destroys a cloud instance
-func (c *Client) DeleteCloud(cloudID string, deleteEBS bool) error {
+func (c *Client) DeleteCloud(cloudID string, hostname string, deleteEBS bool) error {
 	ebsParam := "no"
 	if deleteEBS {
 		ebsParam = "yes"
 	}
 
-	endpoint := fmt.Sprintf("/cloud/%s/destroy?ebs_delete=%s", cloudID, ebsParam)
+	endpoint := fmt.Sprintf("/cloud/%s/destroy?ebs_delete=%s&hostname=%s", cloudID, ebsParam, hostname)
 	respBytes, err := c.Delete(endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to delete cloud instance: %w", err)

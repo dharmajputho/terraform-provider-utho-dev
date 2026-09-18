@@ -108,7 +108,7 @@ func (r *CloudResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"planid": schema.StringAttribute{
 				Required:    true,
-				Description: "Plan ID (e.g. 10360).",
+				Description: "Plan ID (e.g. 10308).",
 			},
 			"billingcycle": schema.StringAttribute{
 				Required:    true,
@@ -326,17 +326,15 @@ func (r *CloudResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		deleteEBS = state.DeleteEBS.ValueBool()
 	}
 
-	err := r.client.DeleteCloud(state.ID.ValueString(), deleteEBS)
+	// Pass hostname — required by the Utho delete API
+	err := r.client.DeleteCloud(state.ID.ValueString(), state.Hostname.ValueString(), deleteEBS)
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting Utho Cloud instance", fmt.Sprintf("%s", err))
 		return
 	}
 }
 
-// ImportState allows importing existing cloud instances into Terraform state
-// Usage: terraform import utho_cloud.server 1671914
 func (r *CloudResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	// req.ID is the cloudid passed by the customer
 	instance, err := r.client.GetCloud(req.ID)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -354,21 +352,17 @@ func (r *CloudResource) ImportState(ctx context.Context, req resource.ImportStat
 		return
 	}
 
-	// Write fetched data to state
-	// Optional fields will be empty — customer can fill them in .tf file
 	state := CloudResourceModel{
-		ID:           types.StringValue(instance.CloudID),
-		IP:           types.StringValue(instance.IP),
-		Status:       types.StringValue(instance.Status),
-		PowerStatus:  types.StringValue(instance.PowerStatus),
-		Hostname:     types.StringValue(instance.Hostname),
-		DCSlug:       types.StringValue(instance.DCSlug),
-		BillingCycle: types.StringValue(instance.BillingCycle),
-		CreatedAt:    types.StringValue(instance.CreatedAt),
-		// Required fields customer must add to .tf file after import
-		PlanID: types.StringValue(""),
-		Auth:   types.StringValue(""),
-		// Optional fields default to null
+		ID:             types.StringValue(instance.CloudID),
+		IP:             types.StringValue(instance.IP),
+		Status:         types.StringValue(instance.Status),
+		PowerStatus:    types.StringValue(instance.PowerStatus),
+		Hostname:       types.StringValue(instance.Hostname),
+		DCSlug:         types.StringValue(instance.DCSlug),
+		BillingCycle:   types.StringValue(instance.BillingCycle),
+		CreatedAt:      types.StringValue(instance.CreatedAt),
+		PlanID:         types.StringValue(""),
+		Auth:           types.StringValue(""),
 		EnablePublicIP: types.StringNull(),
 		SubnetRequired: types.StringNull(),
 		CPUModel:       types.StringNull(),
