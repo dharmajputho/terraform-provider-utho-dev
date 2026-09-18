@@ -217,6 +217,12 @@ terraform apply   # create resources
 |-------------|-------------|
 | [utho_clouds](data-sources/clouds) | List all cloud instances in your account |
 | [utho_kubernetes_config](data-sources/kubernetes_config) | Fetch kubeconfig for a Kubernetes cluster |
+| [utho_cloud_dczones](data-sources/cloud_dczones) | List available data center zones |
+| [utho_cloud_plans](data-sources/cloud_plans) | List available plans for cloud instances |
+| [utho_cloud_images](data-sources/cloud_images) | List available OS images |
+| [utho_cloud_snapshots](data-sources/cloud_snapshots) | List your snapshots |
+| [utho_cloud_isos](data-sources/cloud_isos) | List your ISOs |
+| [utho_vpcs](data-sources/vpcs) | List VPCs and subnets |
 
 ## Full Production Stack Example
 
