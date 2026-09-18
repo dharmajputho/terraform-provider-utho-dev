@@ -131,5 +131,11 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 	return []func() datasource.DataSource{
 		datasources.NewCloudsDataSource,     // data.utho_clouds
 		datasources.NewKubeconfigDataSource, // data.utho_kubernetes_config
+		datasources.NewCloudDCZonesDataSource,
+		datasources.NewCloudPlansDataSource,
+		datasources.NewCloudImagesDataSource,
+		datasources.NewCloudSnapshotsDataSource,
+		datasources.NewCloudISOsDataSource,
+		datasources.NewVPCsDataSource,
 	}
 }
