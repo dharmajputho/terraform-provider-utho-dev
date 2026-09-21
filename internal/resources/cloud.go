@@ -129,7 +129,7 @@ func (r *CloudResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Description: "Whether subnet is required: true or false.",
 			},
 			"cpumodel": schema.StringAttribute{
-				Optional:    true,
+				Required:    true,
 				Description: "CPU model: amd or intel.",
 			},
 			"enablebackup": schema.StringAttribute{

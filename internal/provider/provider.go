@@ -137,5 +137,9 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		datasources.NewCloudSnapshotsDataSource,
 		datasources.NewCloudISOsDataSource,
 		datasources.NewVPCsDataSource,
+		datasources.NewFirewallsDataSource,
+		datasources.NewSSHKeysDataSource,
+		datasources.NewVPCSubnetsDataSource,
+		datasources.NewBillingCyclesDataSource,
 	}
 }
