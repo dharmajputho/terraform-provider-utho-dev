@@ -21,7 +21,7 @@ Creating a cloud instance requires several IDs that you can't guess — plan IDs
 | Snapshot ID (`snapshotid`) | [utho_cloud_snapshots](../data-sources/cloud_snapshots) | `snapshots[*].id` |
 | ISO name (`iso`) | [utho_cloud_isos](../data-sources/cloud_isos) | `isos[*].name` |
 | VPC subnet ID (`vpc`) | [utho_vpcs](../data-sources/vpcs) | `vpcs[*].subnets[*].id` |
-| SSH key ID (`sshkeys`) | [utho_clouds](../data-sources/clouds) | Use `utho_ssh_key.name.id` after creating |
+| SSH key ID (`sshkeys`) | [utho_ssh_keys](../data-sources/ssh_keys) | `keys[*].id` — or use `utho_ssh_key.name.id` after creating one |
 | Security group ID (`firewall`) | Create first with [utho_firewall](firewall) | `utho_firewall.name.id` |
 
 ### Quick lookup example
@@ -51,6 +51,10 @@ output "images" { value = data.utho_cloud_images.ubuntu.images[*].image }
 
 ## Example Usage
 
+~> **Note on `auth` values:** `option1` means root password authentication. `option2` means SSH key authentication. Always pair `option1` with `root_password` and `option2` with `sshkeys`.
+
+~> **Note on `enable_publicip`:** This field takes a string `"true"` or `"false"`, not a boolean — this matches the Utho API format.
+
 ### Minimal instance with password login
 
 ```hcl
@@ -59,10 +63,11 @@ resource "utho_cloud" "web" {
   dcslug          = "inmumbaizone2"
   planid          = "10308"        # 2 vCPU / 4 GB / 80 GB — use data.utho_cloud_plans to find others
   billingcycle    = "hourly"
-  auth            = "option1"
+  auth            = "option1"      # option1 = password auth, option2 = SSH key auth
   root_password   = var.root_password
   image           = "ubuntu-22.04-x86_64"   # use data.utho_cloud_images to find others
   enable_publicip = "true"
+  cpumodel        = "amd"          # amd or intel — check utho_cloud_dczones for what's available in your DC
 }
 
 output "ip" { value = utho_cloud.web.ip }
@@ -397,3 +402,19 @@ resource "utho_cloud" "web" {
 - Use `utho_cloud_power` to start/stop/reboot without recreating.
 - Use `utho_cloud_resize` to change the plan after creation.
 - Use `utho_cloud_snapshot` to take snapshots before destructive operations.
+
+## Related Resources
+
+Once your instance is running, use these resources to manage it:
+
+| Resource | Purpose |
+|----------|---------|
+| [utho_cloud_power](cloud_power) | Start, stop, or reboot the instance |
+| [utho_cloud_resize](cloud_resize) | Resize to a different plan |
+| [utho_cloud_snapshot](cloud_snapshot) | Take a point-in-time snapshot |
+| [utho_cloud_firewall](cloud_firewall) | Attach a security group post-deploy |
+| [utho_cloud_vpc](cloud_vpc) | Attach a VPC subnet post-deploy |
+| [utho_cloud_public_ip](cloud_public_ip) | Assign an additional public IP |
+| [utho_cloud_storage](cloud_storage) | Add a general storage disk |
+| [utho_cloud_ebs](cloud_ebs) | Attach an EBS block volume |
+| [utho_cloud_iso](cloud_iso) | Mount or unmount an ISO |
