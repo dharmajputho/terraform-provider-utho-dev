@@ -18,7 +18,7 @@ Attaches or detaches a VPC subnet from an existing cloud instance. Use this to a
 ```hcl
 resource "utho_cloud_vpc" "attach" {
   cloud_id  = utho_cloud.web.id
-  vpc_id    = utho_subnet.private.id
+  subnet_id = utho_subnet.private.id
 }
 ```
 
@@ -39,39 +39,58 @@ locals {
 }
 
 resource "utho_cloud_vpc" "attach" {
-  cloud_id = utho_cloud.backend.id
-  vpc_id   = local.private_subnet.id
+  cloud_id  = utho_cloud.backend.id
+  subnet_id = local.private_subnet.id
 }
 ```
 
-### Move instance to different subnet
+### Full example — create VPC, subnet, then attach
 
 ```hcl
-# Detach from old subnet — destroy the existing utho_cloud_vpc resource
-# Then create a new one pointing to the new subnet
+resource "utho_vpc" "prod" {
+  name    = "production"
+  network = "10.0.0.0"
+  size    = "24"
+  dcslug  = "inmumbaizone2"
+  planid  = "1008"
+}
 
-resource "utho_cloud_vpc" "new_subnet" {
-  cloud_id = utho_cloud.web.id
-  vpc_id   = utho_subnet.new_private.id
+resource "utho_subnet" "private" {
+  name            = "private-subnet"
+  vpc_id          = utho_vpc.prod.id
+  network         = "10.0.0.0"
+  size            = 24
+  type            = "private"
+  assign_publicip = 0
+}
+
+resource "utho_cloud_vpc" "attach" {
+  cloud_id  = utho_cloud.backend.id
+  subnet_id = utho_subnet.private.id
+}
+
+output "private_ip" {
+  value = utho_cloud_vpc.attach.private_ip
 }
 ```
 
 ## Argument Reference
 
-| Argument   | Type   | Required | Description |
-|------------|--------|----------|-------------|
-| `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
-| `vpc_id`   | String | Yes      | VPC subnet numeric ID. Use [utho_vpcs](../data-sources/vpcs) or [utho_vpc_subnets](../data-sources/vpc_subnets) to find valid subnet IDs. |
+| Argument    | Type   | Required | Description |
+|-------------|--------|----------|-------------|
+| `cloud_id`  | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
+| `subnet_id` | String | Yes      | Subnet ID to attach. Use [utho_vpcs](../data-sources/vpcs) or [utho_vpc_subnets](../data-sources/vpc_subnets) to find valid subnet IDs. |
 
 ## Attribute Reference
 
-| Attribute | Type   | Description |
-|-----------|--------|-------------|
-| `id`      | String | Attachment ID. |
+| Attribute    | Type   | Description |
+|--------------|--------|-------------|
+| `id`         | String | Attachment ID (`cloud_id:subnet_id`). |
+| `private_ip` | String | Private IP assigned to the instance within the subnet. |
 
 ## Notes
 
-- Use the subnet's numeric `id` — not the UUID.
+- Use the subnet's ID from `utho_subnet.name.id` or from `data.utho_vpcs`.
 - The instance and subnet must be in the same data center.
 - Destroying this resource detaches the instance from the VPC subnet.
 - Use `data.utho_vpcs` or `data.utho_vpc_subnets` to discover existing subnet IDs.

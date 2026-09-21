@@ -309,7 +309,7 @@ output "server_ips" { value = utho_cloud.web[*].ip }
 | `hostname`     | String | Hostname for the instance. |
 | `dcslug`       | String | Data center slug. See [utho_cloud_dczones](../data-sources/cloud_dczones) for valid values. |
 | `planid`       | String | Plan ID for the instance size. See [utho_cloud_plans](../data-sources/cloud_plans) for valid values. |
-| `billingcycle` | String | `hourly`, `monthly`, or `12month`. |
+| `billingcycle` | String | `hourly`, `monthly`, `3month`, `6month`, `12month`, `24month`, or `36month`. Use [utho_billing_cycles](../data-sources/billing_cycles) to list valid values. |
 | `auth`         | String | `option1` = root password login, `option2` = SSH key login. |
 
 ### Authentication — one required
@@ -336,7 +336,7 @@ output "server_ips" { value = utho_cloud.web[*].ip }
 | `enable_publicip` | String | `"true"` or `"false"`. Default: `"true"`. |
 | `vpc`             | String | VPC subnet ID. See [utho_vpcs](../data-sources/vpcs) for valid values. |
 | `firewall`        | String | Security group ID to attach at creation. |
-| `cpumodel`        | String | CPU preference: `amd` or `intel`. |
+| `cpumodel`        | String | Required. CPU model: `amd` or `intel`. Must match what is available in the chosen DC — use [utho_cloud_dczones](../data-sources/cloud_dczones) to check `default_cpu`. |
 | `enablebackup`    | String | Enable automated backups: `"true"` or `"false"`. |
 | `support`         | String | `unmanaged` or `managed`. |
 | `delete_ebs`      | Bool   | Delete attached EBS volumes on destroy. Default: `false`. |

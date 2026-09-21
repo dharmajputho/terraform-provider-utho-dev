@@ -16,7 +16,7 @@ Adds a general-purpose storage disk to an existing cloud instance. Unlike EBS vo
 ```hcl
 resource "utho_cloud_storage" "extra" {
   cloud_id = utho_cloud.web.id
-  disk     = 100
+  size_gb  = 100
 }
 ```
 
@@ -25,7 +25,7 @@ resource "utho_cloud_storage" "extra" {
 ```hcl
 resource "utho_cloud_storage" "media" {
   cloud_id = utho_cloud.app.id
-  disk     = 500
+  size_gb  = 500
 }
 
 output "storage_id" {
@@ -38,13 +38,14 @@ output "storage_id" {
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
 | `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
-| `disk`     | Number | Yes      | Disk size in GB. |
+| `size_gb`  | Number | Yes      | Disk size in GB. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
 | `id`      | String | Unique storage disk ID. |
+| `disk_id` | String | Internal disk ID used for management operations. |
 
 ## EBS vs General Storage
 

@@ -22,8 +22,9 @@ resource "utho_cloud_power" "web" {
 
 # Step 2 — resize
 resource "utho_cloud_resize" "web" {
-  cloud_id = utho_cloud.web.id
-  planid   = "10313"   # 4 vCPU / 8 GB / 160 GB
+  cloud_id    = utho_cloud.web.id
+  plan_id     = "10313"   # 4 vCPU / 8 GB / 160 GB
+  resize_type = "full"    # full = CPU/RAM + disk, ramcpu = CPU/RAM only
 
   depends_on = [utho_cloud_power.web]
 }
@@ -40,7 +41,6 @@ data "utho_cloud_plans" "mumbai" {
 }
 
 locals {
-  # Find 4 vCPU plan with disk
   bigger_plan = one([
     for p in data.utho_cloud_plans.mumbai.plans :
     p if p.cpu == "4" && p.disk != "0" && p.slug == "basic"
@@ -48,23 +48,32 @@ locals {
 }
 
 resource "utho_cloud_resize" "web" {
-  cloud_id = utho_cloud.web.id
-  planid   = local.bigger_plan.id
+  cloud_id    = utho_cloud.web.id
+  plan_id     = local.bigger_plan.id
+  resize_type = "full"
 }
 ```
 
 ## Argument Reference
 
-| Argument   | Type   | Required | Description |
-|------------|--------|----------|-------------|
-| `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
-| `planid`   | String | Yes      | New plan ID. Use [utho_cloud_plans](../data-sources/cloud_plans) to find valid plan IDs. |
+| Argument      | Type   | Required | Description |
+|---------------|--------|----------|-------------|
+| `cloud_id`    | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
+| `plan_id`     | String | Yes      | New plan ID. Use [utho_cloud_plans](../data-sources/cloud_plans) to find valid plan IDs. |
+| `resize_type` | String | Yes      | `full` — resize CPU, RAM and disk. `ramcpu` — resize CPU and RAM only (no disk change). |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
 | `id`      | String | Same as `cloud_id`. |
+
+## Resize Types
+
+| Value    | What Changes |
+|----------|--------------|
+| `full`   | CPU, RAM, and disk — use when upgrading to a plan with larger disk |
+| `ramcpu` | CPU and RAM only — use when you want to keep existing disk size |
 
 ## Notes
 
