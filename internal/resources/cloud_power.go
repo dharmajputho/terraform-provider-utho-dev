@@ -106,7 +106,7 @@ func (r *CloudPowerResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	plan.ID = types.StringValue(fmt.Sprintf("%s-%s", plan.CloudID.ValueString(), plan.Action.ValueString()))
+	plan.ID = types.StringValue(plan.CloudID.ValueString())
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -131,7 +131,7 @@ func (r *CloudPowerResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	plan.ID = types.StringValue(fmt.Sprintf("%s-%s", plan.CloudID.ValueString(), plan.Action.ValueString()))
+	plan.ID = types.StringValue(plan.CloudID.ValueString())
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
