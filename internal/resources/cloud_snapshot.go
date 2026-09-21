@@ -106,11 +106,18 @@ func (r *CloudSnapshotResource) Create(ctx context.Context, req resource.CreateR
 		fmt.Sprintf("%s:%s", plan.CloudID.ValueString(), plan.Name.ValueString()),
 	)
 
-	// snapshot_id is not returned by the API
-	// Customer gets it from Utho dashboard and sets it in .tf file
-	if plan.SnapshotID.IsNull() || plan.SnapshotID.IsUnknown() {
-		plan.SnapshotID = types.StringValue("")
+	// Look up the snapshot ID from the API by name
+	snapshotID := ""
+	deployData, err2 := r.client.GetCloudDeployData("")
+	if err2 == nil {
+		for _, s := range deployData.Snapshots {
+			if s.Name == plan.Name.ValueString() && s.CloudID == plan.CloudID.ValueString() {
+				snapshotID = s.ID
+				break
+			}
+		}
 	}
+	plan.SnapshotID = types.StringValue(snapshotID)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
