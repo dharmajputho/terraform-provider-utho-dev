@@ -75,11 +75,30 @@ func (c *Client) CreateFirewall(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse create firewall response: %w", err)
 	}
-	if result["status"] != "success" {
+	if result["status"] != nil && result["status"] != "success" {
 		return "", fmt.Errorf("create firewall failed: %s", result["message"])
 	}
-	id, _ := result["id"].(string)
-	return id, nil
+
+	// Try to get ID from response first
+	if id, ok := result["id"].(string); ok && id != "" {
+		return id, nil
+	}
+
+	// API returns empty body — look up the firewall by name
+	listResp, err2 := c.Get("/firewall")
+	if err2 != nil {
+		return "", fmt.Errorf("failed to look up created firewall: %w", err2)
+	}
+	var fwList FirewallListResponse
+	if err2 := json.Unmarshal(listResp, &fwList); err2 != nil {
+		return "", fmt.Errorf("failed to parse firewall list: %w", err2)
+	}
+	for _, fw := range fwList.Firewalls {
+		if fw.Name == name {
+			return fw.ID, nil
+		}
+	}
+	return "", fmt.Errorf("firewall created but could not find ID for name: %s", name)
 }
 
 func (c *Client) GetFirewall(firewallID string) (*FirewallInstance, error) {
