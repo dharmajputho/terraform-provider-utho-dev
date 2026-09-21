@@ -63,10 +63,10 @@ type CloudMeta struct {
 }
 
 type CloudStorage struct {
-	ID   string `json:"id"`
-	Size string `json:"size"`
-	Type string `json:"type"`
-	Bus  string `json:"bus"`
+	ID   string  `json:"id"`
+	Size float64 `json:"size"`
+	Type string  `json:"type"`
+	Bus  string  `json:"bus"`
 }
 
 type CloudInstance struct {

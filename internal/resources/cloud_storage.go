@@ -115,9 +115,9 @@ func (r *CloudStorageResource) Create(ctx context.Context, req resource.CreateRe
 	cloud, err2 := r.client.GetCloud(plan.CloudID.ValueString())
 	if err2 == nil && cloud != nil {
 		// Find the newly added disk — look for one matching our size
-		targetSize := fmt.Sprintf("%d", plan.SizeGB.ValueInt64())
+		targetSize := float64(plan.SizeGB.ValueInt64())
 		for _, s := range cloud.Storages {
-			if s.Size == targetSize || s.Size == fmt.Sprintf("%dGB", plan.SizeGB.ValueInt64()) {
+			if s.Size == targetSize {
 				diskID = s.ID
 				break
 			}
