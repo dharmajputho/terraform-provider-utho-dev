@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -190,12 +191,18 @@ func (c *Client) PowerAction(cloudID string, action string) error {
 		return fmt.Errorf("power action '%s' failed: %w", action, err)
 	}
 
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse power action response: %w", err)
+	// API sometimes returns empty body on success
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
 	}
 
-	if result["status"] != "success" {
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("power action failed: %s", result["message"])
 	}
 
