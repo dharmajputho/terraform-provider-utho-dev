@@ -20,9 +20,10 @@ Creating a cloud instance requires several IDs that you can't guess — plan IDs
 | OS image slug (`image`) | [utho_cloud_images](../data-sources/cloud_images) | `images[*].image` |
 | Snapshot ID (`snapshotid`) | [utho_cloud_snapshots](../data-sources/cloud_snapshots) | `snapshots[*].id` |
 | ISO name (`iso`) | [utho_cloud_isos](../data-sources/cloud_isos) | `isos[*].name` |
-| VPC subnet ID (`vpc`) | [utho_vpcs](../data-sources/vpcs) | `vpcs[*].subnets[*].id` |
-| SSH key ID (`sshkeys`) | [utho_clouds](../data-sources/clouds) | Use `utho_ssh_key.name.id` after creating |
-| Security group ID (`firewall`) | Create first with [utho_firewall](firewall) | `utho_firewall.name.id` |
+| VPC subnet ID (`vpc`) | [utho_vpcs](../data-sources/vpcs) or [utho_vpc_subnets](../data-sources/vpc_subnets) | `vpcs[*].subnets[*].id` or `subnets[*].id` |
+| SSH key ID (`sshkeys`) | [utho_ssh_keys](../data-sources/ssh_keys) | `keys[*].id` |
+| Security group ID (`firewall`) | [utho_firewalls](../data-sources/firewalls) | `firewalls[*].id` |
+| Billing cycle (`billingcycle`) | [utho_billing_cycles](../data-sources/billing_cycles) | `cycles[*]` |
 
 ### Quick lookup example
 
