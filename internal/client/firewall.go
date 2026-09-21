@@ -47,6 +47,23 @@ type FirewallListResponse struct {
 	Firewalls []FirewallInstance `json:"firewalls"`
 }
 
+// ── helpers ───────────────────────────────────────────────────────────────
+
+// parseFirewallResponse parses a standard Utho API response.
+// Many firewall endpoints return an empty body on success — treat that as success.
+func parseFirewallResponse(respBytes []byte) (map[string]interface{}, error) {
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return map[string]interface{}{"status": "success"}, nil
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		// Non-JSON but non-empty — treat as success since HTTP call succeeded
+		return map[string]interface{}{"status": "success"}, nil
+	}
+	return result, nil
+}
+
 // ── API methods ───────────────────────────────────────────────────────────
 
 func (c *Client) CreateFirewall(name string) (string, error) {
@@ -54,8 +71,8 @@ func (c *Client) CreateFirewall(name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create firewall: %w", err)
 	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return "", fmt.Errorf("failed to parse create firewall response: %w", err)
 	}
 	if result["status"] != "success" {
@@ -85,8 +102,8 @@ func (c *Client) DeleteFirewall(firewallID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete firewall: %w", err)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return fmt.Errorf("failed to parse delete firewall response: %w", err)
 	}
 	if result["status"] != "success" {
@@ -101,15 +118,8 @@ func (c *Client) AddFirewallRule(firewallID string, req *FirewallRuleRequest) (s
 	if err != nil {
 		return "", fmt.Errorf("failed to add firewall rule: %w", err)
 	}
-
-	// API sometimes returns empty body on success
-	trimmed := strings.TrimSpace(string(respBytes))
-	if trimmed == "" || trimmed == "null" {
-		return "unknown", nil
-	}
-
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return "unknown", nil
 	}
 	if result["status"] != nil && result["status"] != "success" {
@@ -127,8 +137,8 @@ func (c *Client) DeleteFirewallRule(firewallID string, ruleID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete firewall rule: %w", err)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return fmt.Errorf("failed to parse delete firewall rule response: %w", err)
 	}
 	if result["status"] != "success" {
@@ -144,8 +154,8 @@ func (c *Client) AttachFirewallServer(firewallID string, cloudID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to attach firewall to server: %w", err)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return fmt.Errorf("failed to parse attach firewall response: %w", err)
 	}
 	if result["status"] != "success" {
@@ -160,8 +170,8 @@ func (c *Client) DetachFirewallServer(firewallID string, cloudID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to detach firewall from server: %w", err)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	result, err := parseFirewallResponse(respBytes)
+	if err != nil {
 		return fmt.Errorf("failed to parse detach firewall response: %w", err)
 	}
 	if result["status"] != "success" {
