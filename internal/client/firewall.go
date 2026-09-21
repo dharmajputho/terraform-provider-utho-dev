@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -100,15 +101,24 @@ func (c *Client) AddFirewallRule(firewallID string, req *FirewallRuleRequest) (s
 	if err != nil {
 		return "", fmt.Errorf("failed to add firewall rule: %w", err)
 	}
+
+	// API sometimes returns empty body on success
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return "unknown", nil
+	}
+
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse add firewall rule response: %w", err)
+		return "unknown", nil
 	}
-	if result["status"] != "success" {
+	if result["status"] != nil && result["status"] != "success" {
 		return "", fmt.Errorf("add firewall rule failed: %s", result["message"])
 	}
-	id := fmt.Sprintf("%v", result["id"])
-	return id, nil
+	if result["id"] != nil {
+		return fmt.Sprintf("%v", result["id"]), nil
+	}
+	return "unknown", nil
 }
 
 func (c *Client) DeleteFirewallRule(firewallID string, ruleID string) error {
