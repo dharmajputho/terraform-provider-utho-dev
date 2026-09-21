@@ -1,5 +1,5 @@
 ---
-page_title: "Cloud Instance VPC Attachment - Utho"
+page_title: "Cloud VPC Attachment - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
   Attach or detach a VPC subnet from a Utho Cloud instance.
@@ -7,83 +7,71 @@ description: |-
 
 # utho_cloud_vpc
 
-Attaches a VPC subnet to a Utho Cloud instance, assigning a private IP
-address from the subnet's CIDR range. Enables private communication
-between instances without traversing the public internet.
+Attaches or detaches a VPC subnet from an existing cloud instance. Use this to add an instance to a private network post-deployment without recreating it.
 
-Destroying this resource detaches the subnet and releases the private IP.
-
-~> **Important:** After attaching or detaching a VPC subnet, power-cycle
-the instance using `utho_cloud_power` with `action = "powercycle"` so the
-guest OS picks up the new or removed private network interface.
+~> **Note:** You can also attach a VPC subnet at creation time using the `vpc` argument in `utho_cloud`. Use `utho_cloud_vpc` to change the VPC attachment on an already-running instance.
 
 ## Example Usage
 
-### Attach a VPC subnet
+### Attach instance to a VPC subnet
 
 ```hcl
-resource "utho_cloud_vpc" "private" {
-  cloud_id  = utho_cloud.app.id
-  subnet_id = "b0825dae-fd86-4d67-8238-c438774da894"
-}
-
-output "private_ip" {
-  value = utho_cloud_vpc.private.private_ip
+resource "utho_cloud_vpc" "attach" {
+  cloud_id  = utho_cloud.web.id
+  vpc_id    = utho_subnet.private.id
 }
 ```
 
-### Attach VPC and power-cycle to apply the NIC
+### Use existing subnet from data source
 
 ```hcl
-resource "utho_cloud_vpc" "private" {
-  cloud_id  = utho_cloud.app.id
-  subnet_id = "b0825dae-fd86-4d67-8238-c438774da894"
+data "utho_vpcs" "mumbai" {
+  dcslug = "inmumbaizone2"
 }
 
-resource "utho_cloud_power" "apply_vpc" {
-  cloud_id   = utho_cloud.app.id
-  action     = "powercycle"
-  depends_on = [utho_cloud_vpc.private]
+locals {
+  private_subnet = one(flatten([
+    for vpc in data.utho_vpcs.mumbai.vpcs : [
+      for s in vpc.subnets :
+      s if s.subnet_type == "private" && vpc.name == "production"
+    ]
+  ]))
+}
+
+resource "utho_cloud_vpc" "attach" {
+  cloud_id = utho_cloud.backend.id
+  vpc_id   = local.private_subnet.id
 }
 ```
 
-### Connect multiple instances to the same private network
+### Move instance to different subnet
 
 ```hcl
-resource "utho_cloud" "nodes" {
-  count    = 3
-  hostname = "node-${count.index + 1}.mhc"
-  # ...
-}
+# Detach from old subnet — destroy the existing utho_cloud_vpc resource
+# Then create a new one pointing to the new subnet
 
-resource "utho_cloud_vpc" "node_network" {
-  count     = 3
-  cloud_id  = utho_cloud.nodes[count.index].id
-  subnet_id = "b0825dae-fd86-4d67-8238-c438774da894"
-}
-
-output "private_ips" {
-  value = utho_cloud_vpc.node_network[*].private_ip
+resource "utho_cloud_vpc" "new_subnet" {
+  cloud_id = utho_cloud.web.id
+  vpc_id   = utho_subnet.new_private.id
 }
 ```
 
 ## Argument Reference
 
-| Argument    | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `cloud_id`  | String | Yes      | The ID of the cloud instance. Changing this forces a new resource. |
-| `subnet_id` | String | Yes      | The UUID of the VPC subnet (e.g. `b0825dae-fd86-4d67-8238-c438774da894`). Changing this forces a new resource. |
+| Argument   | Type   | Required | Description |
+|------------|--------|----------|-------------|
+| `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
+| `vpc_id`   | String | Yes      | VPC subnet numeric ID. Use [utho_vpcs](../data-sources/vpcs) or [utho_vpc_subnets](../data-sources/vpc_subnets) to find valid subnet IDs. |
 
 ## Attribute Reference
 
-| Attribute    | Type   | Description |
-|--------------|--------|-------------|
-| `id`         | String | Identifier in the format `{cloud_id}:{subnet_id}`. |
-| `private_ip` | String | Private IP address assigned from the subnet's CIDR range. |
+| Attribute | Type   | Description |
+|-----------|--------|-------------|
+| `id`      | String | Attachment ID. |
 
 ## Notes
 
-- The private IP is assigned automatically from the subnet's address pool.
-- Changing `cloud_id` or `subnet_id` destroys the current attachment and creates a new one.
-- Multiple subnets can be attached to the same instance.
-- Always power-cycle the instance after attaching or detaching to apply NIC changes.
+- Use the subnet's numeric `id` — not the UUID.
+- The instance and subnet must be in the same data center.
+- Destroying this resource detaches the instance from the VPC subnet.
+- Use `data.utho_vpcs` or `data.utho_vpc_subnets` to discover existing subnet IDs.

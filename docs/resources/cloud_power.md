@@ -1,72 +1,85 @@
 ---
-page_title: "Cloud Instance Power Management - Utho"
+page_title: "Cloud Power - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
-  Manage the power state of a Utho Cloud instance.
+  Control the power state of a Utho Cloud instance.
 ---
 
 # utho_cloud_power
 
-Manages the power state of a Utho Cloud instance. Supports power on,
-power off, hard reboot, and power cycle operations.
+Controls the power state of an existing Utho Cloud instance. Use this resource to start, stop, or reboot an instance without destroying and recreating it.
 
-~> **Note:** Power actions are imperative — they execute immediately when
-`terraform apply` is run. Changing the `action` field triggers the new
-action on the next apply.
+~> **Note:** This resource manages the power state only. The instance must already exist — either created via `utho_cloud` or imported.
 
 ## Example Usage
 
-### Power off an instance
+### Stop an instance
 
 ```hcl
-resource "utho_cloud_power" "stop" {
+resource "utho_cloud_power" "web" {
   cloud_id = utho_cloud.web.id
   action   = "poweroff"
 }
 ```
 
-### Hard reboot an instance
+### Start an instance
 
 ```hcl
-resource "utho_cloud_power" "reboot" {
-  cloud_id = utho_cloud.app.id
-  action   = "hardreboot"
+resource "utho_cloud_power" "web" {
+  cloud_id = utho_cloud.web.id
+  action   = "poweron"
 }
 ```
 
-### Power cycle after attaching a VPC
+### Reboot an instance
 
 ```hcl
-resource "utho_cloud_vpc" "private" {
-  cloud_id  = utho_cloud.app.id
-  subnet_id = "b0825dae-fd86-4d67-8238-c438774da894"
+resource "utho_cloud_power" "web" {
+  cloud_id = utho_cloud.web.id
+  action   = "reboot"
+}
+```
+
+### Stop before maintenance, start after
+
+```hcl
+# Stop
+resource "utho_cloud_power" "maintenance" {
+  cloud_id = utho_cloud.web.id
+  action   = "poweroff"
 }
 
-resource "utho_cloud_power" "apply_vpc" {
-  cloud_id   = utho_cloud.app.id
-  action     = "powercycle"
-  depends_on = [utho_cloud_vpc.private]
-}
+# After maintenance — change action to poweron and apply
+# resource "utho_cloud_power" "maintenance" {
+#   cloud_id = utho_cloud.web.id
+#   action   = "poweron"
+# }
 ```
 
 ## Argument Reference
 
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
-| `cloud_id` | String | Yes      | The ID of the cloud instance to manage. |
-| `action`   | String | Yes      | Power action to perform. See [Actions](#actions) below. |
-
-### Actions
-
-| Value        | Description |
-|--------------|-------------|
-| `poweron`    | Start a stopped instance. |
-| `poweroff`   | Gracefully shut down a running instance. |
-| `hardreboot` | Force reboot the instance (equivalent to a hard reset). |
-| `powercycle` | Power off then power on the instance. Required after VPC or NIC changes. |
+| `cloud_id` | String | Yes      | Cloud instance ID. Get from `utho_cloud.name.id`. Changing this forces a new resource. |
+| `action`   | String | Yes      | Power action: `poweron`, `poweroff`, or `reboot`. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Identifier in the format `{cloud_id}-{action}`. |
+| `id`      | String | Same as `cloud_id`. |
+
+## Power Actions
+
+| Action     | Description |
+|------------|-------------|
+| `poweron`  | Start a stopped instance. |
+| `poweroff` | Gracefully stop a running instance. |
+| `reboot`   | Restart a running instance. |
+
+## Notes
+
+- Changing `action` updates the power state in place — no destroy/recreate.
+- After a `reboot` or `poweron`, the instance takes 30–60 seconds to be fully ready.
+- Use `poweroff` before resizing with `utho_cloud_resize` to avoid data corruption.
+- Destroying this resource does NOT destroy the cloud instance — it only removes the power state management from Terraform state.

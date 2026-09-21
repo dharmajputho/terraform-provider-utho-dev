@@ -1,77 +1,62 @@
 ---
-page_title: "Cloud Instance General Storage - Utho"
+page_title: "Cloud Storage - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
-  Add and manage general storage disks on a Utho Cloud instance.
+  Add general-purpose storage disks to a Utho Cloud instance.
 ---
 
 # utho_cloud_storage
 
-Adds a general storage disk to a Utho Cloud instance. Multiple disks
-can be added to the same instance by creating multiple `utho_cloud_storage`
-resources.
-
-~> **Note:** The Utho API does not return the disk ID in the create response.
-After creation, retrieve the `disk_id` from the Utho dashboard
-(**Cloud Instance → Storage tab**) and add it to your configuration
-to enable update and delete operations.
+Adds a general-purpose storage disk to an existing cloud instance. Unlike EBS volumes (`utho_cloud_ebs`), general storage is directly attached to the instance's hardware and offers consistent local performance.
 
 ## Example Usage
 
-### Add an additional disk
+### Add a storage disk
 
 ```hcl
 resource "utho_cloud_storage" "extra" {
   cloud_id = utho_cloud.web.id
-  size_gb  = 50
+  disk     = 100
 }
 ```
 
-### Add a disk with bus and type configuration
+### Add large storage for media files
 
 ```hcl
-resource "utho_cloud_storage" "data" {
-  cloud_id  = utho_cloud.web.id
-  size_gb   = 100
-  bus       = "virtio"
-  disk_type = "Additional"
+resource "utho_cloud_storage" "media" {
+  cloud_id = utho_cloud.app.id
+  disk     = 500
 }
-```
 
-### Update disk configuration after noting the disk_id
-
-```hcl
-resource "utho_cloud_storage" "data" {
-  cloud_id  = utho_cloud.web.id
-  size_gb   = 100
-  disk_id   = "89153"    # retrieved from dashboard after creation
-  bus       = "ide"
-  disk_type = "Additional"
+output "storage_id" {
+  value = utho_cloud_storage.media.id
 }
 ```
 
 ## Argument Reference
 
-| Argument    | Type   | Required | Description |
-|-------------|--------|----------|-------------|
-| `cloud_id`  | String | Yes      | The ID of the cloud instance. Changing this forces a new resource. |
-| `size_gb`   | Number | Yes      | Disk size in GB. Changing this forces a new resource. |
-| `disk_id`   | String | No       | Disk ID assigned by Utho. Required for update and delete. Retrieve from **Cloud Instance → Storage tab** after creation. |
-| `bus`       | String | No       | Disk bus type. Accepted values: `virtio`, `ide`. Default: `virtio`. |
-| `disk_type` | String | No       | Disk role. Accepted values: `Primary`, `Additional`. Only one `Primary` disk allowed per instance. Default: `Additional`. |
+| Argument   | Type   | Required | Description |
+|------------|--------|----------|-------------|
+| `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
+| `disk`     | Number | Yes      | Disk size in GB. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Identifier in the format `{cloud_id}:{size_gb}`. |
-| `disk_id` | String | Disk ID. Set manually after retrieving from the dashboard. |
+| `id`      | String | Unique storage disk ID. |
 
-## Workflow
+## EBS vs General Storage
 
-1. Create the resource — Terraform adds the disk to the instance.
-2. Note the disk ID from **Cloud Instance → Storage tab** in the Utho dashboard.
-3. Add `disk_id` to your `.tf` file.
-4. Run `terraform apply` to sync the state.
-5. Update `bus` or `disk_type` as needed — Terraform calls the update API.
-6. Remove the resource block and run `terraform apply` to delete the disk.
+| | General Storage (`utho_cloud_storage`) | EBS (`utho_cloud_ebs`) |
+|---|---|---|
+| Type | Local disk | Network-attached block volume |
+| Performance | Consistent local IOPS | High performance NVMe or SSD |
+| Persistence | Tied to instance | Independent of instance |
+| Use case | Extra disk space, media files | Databases, critical data |
+
+## Notes
+
+- General storage disks are mounted automatically. Use standard Linux tools to format and mount them.
+- Destroying this resource removes the disk and all data on it permanently.
+- For databases or critical data, use `utho_cloud_ebs` instead — EBS volumes can be detached and reattached independently of the instance.

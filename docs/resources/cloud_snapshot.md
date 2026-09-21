@@ -1,82 +1,116 @@
 ---
-page_title: "Cloud Instance Snapshot - Utho"
+page_title: "Cloud Snapshot - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
-  Create, restore, and delete snapshots of a Utho Cloud instance.
+  Create and manage snapshots of Utho Cloud instances.
 ---
 
 # utho_cloud_snapshot
 
-Creates a point-in-time snapshot of a Utho Cloud instance. Snapshots
-capture the full disk state and can be used to restore the instance
-or deploy new instances from that state.
+Creates and manages a snapshot of a Utho Cloud instance. Snapshots capture the full disk state of an instance at a point in time. Use them for backups, golden images, or deploying identical copies of a configured server.
 
-~> **Note:** The Utho API does not return the snapshot ID in the create
-response. After creation, retrieve the `snapshot_id` from the Utho dashboard
-(**Cloud Instance → Snapshot tab**) and add it to your configuration
-to enable restore and delete operations.
+Once created, use the snapshot ID in `utho_cloud` with `snapshotid` to deploy new instances from it.
 
 ## Example Usage
 
-### Create a snapshot before a deployment
+### Create a snapshot
 
 ```hcl
-resource "utho_cloud_snapshot" "before_deploy" {
-  cloud_id = utho_cloud.web.id
-  name     = "before-v2-deploy"
+resource "utho_cloud_snapshot" "backup" {
+  cloud_id      = utho_cloud.web.id
+  snapshot_name = "web-backup-before-upgrade"
+}
+
+output "snapshot_id" {
+  value = utho_cloud_snapshot.backup.id
 }
 ```
 
-### Restore a snapshot
-
-After creation, note the snapshot ID from the dashboard, then set `restore = true`:
+### Create golden image snapshot and deploy from it
 
 ```hcl
-resource "utho_cloud_snapshot" "before_deploy" {
-  cloud_id    = utho_cloud.web.id
-  name        = "before-v2-deploy"
-  snapshot_id = "201852"
-  restore     = true
+# Create snapshot of configured golden instance
+resource "utho_cloud_snapshot" "golden" {
+  cloud_id      = utho_cloud.base.id
+  snapshot_name = "golden-image-v1"
+}
+
+# Deploy multiple identical instances from snapshot
+resource "utho_cloud" "worker" {
+  count = 5
+
+  hostname        = "worker-${count.index + 1}.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10308"
+  billingcycle    = "hourly"
+  auth            = "option1"
+  root_password   = var.root_password
+  snapshotid      = utho_cloud_snapshot.golden.id
+  enable_publicip = "true"
+  cpumodel        = "amd"
 }
 ```
 
-### Delete a snapshot
-
-Add `snapshot_id` then remove the resource block and run `terraform apply`:
+### Use existing snapshot from data source
 
 ```hcl
-# Remove this block and run: terraform apply
-resource "utho_cloud_snapshot" "before_deploy" {
-  cloud_id    = utho_cloud.web.id
-  name        = "before-v2-deploy"
-  snapshot_id = "201852"
+data "utho_cloud_snapshots" "all" {}
+
+locals {
+  latest = one([
+    for s in data.utho_cloud_snapshots.all.snapshots :
+    s if s.name == "golden-image-v1" && s.status == "Active"
+  ])
 }
+
+resource "utho_cloud" "restored" {
+  hostname        = "restored-01.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10308"
+  billingcycle    = "hourly"
+  auth            = "option1"
+  root_password   = var.root_password
+  snapshotid      = local.latest.id
+  enable_publicip = "true"
+  cpumodel        = "amd"
+}
+```
+
+### Automated backup before risky operations
+
+```hcl
+# Take snapshot before upgrade
+resource "utho_cloud_snapshot" "pre_upgrade" {
+  cloud_id      = utho_cloud.app.id
+  snapshot_name = "pre-upgrade-${formatdate("YYYY-MM-DD", timestamp())}"
+}
+
+# If upgrade fails, deploy from snapshot to restore
+# resource "utho_cloud" "rollback" {
+#   snapshotid = utho_cloud_snapshot.pre_upgrade.id
+#   ...
+# }
 ```
 
 ## Argument Reference
 
-| Argument      | Type   | Required | Description |
-|---------------|--------|----------|-------------|
-| `cloud_id`    | String | Yes      | The ID of the cloud instance to snapshot. Changing this forces a new resource. |
-| `name`        | String | Yes      | Name of the snapshot. Changing this forces a new resource. |
-| `snapshot_id` | String | No       | Snapshot ID. Retrieved from the Utho dashboard after creation. Required for restore and delete. |
-| `restore`     | Bool   | No       | Set to `true` to restore the instance from this snapshot. Requires `snapshot_id` to be set. |
+| Argument        | Type   | Required | Description |
+|-----------------|--------|----------|-------------|
+| `cloud_id`      | String | Yes      | Cloud instance ID to snapshot. Changing this forces a new resource. |
+| `snapshot_name` | String | Yes      | Name for the snapshot. |
 
 ## Attribute Reference
 
-| Attribute     | Type   | Description |
-|---------------|--------|-------------|
-| `id`          | String | Identifier in the format `{cloud_id}:{name}`. |
-| `snapshot_id` | String | Snapshot ID set after retrieval from the dashboard. |
+| Attribute    | Type   | Description |
+|--------------|--------|-------------|
+| `id`         | String | Unique snapshot ID. Use this as `snapshotid` in `utho_cloud`. |
+| `status`     | String | Snapshot status (`Active`, `Pending`). |
+| `created_at` | String | Creation timestamp. |
 
-## Workflow
+## Notes
 
-1. Create the resource — Terraform sends the snapshot creation request.
-2. Wait for the snapshot to complete in the Utho dashboard.
-3. Note the snapshot ID from **Cloud Instance → Snapshot tab**.
-4. Add `snapshot_id` to your `.tf` file.
-5. To restore: set `restore = true` and run `terraform apply`.
-6. To delete: remove the resource block and run `terraform apply`.
-
-~> **Warning:** Restoring a snapshot overwrites all current data on
-the instance. This operation cannot be undone.
+- Snapshot creation takes 2–10 minutes depending on disk size. Status will be `Pending` until complete.
+- Use `data.utho_cloud_snapshots` to list all your snapshots and their IDs.
+- Snapshots are stored in the same data center as the source instance.
+- Destroying this resource deletes the snapshot permanently — any instances deployed from it will continue running, but you won't be able to deploy new instances from it.
+- Take snapshots before major changes: OS upgrades, configuration changes, or resizing.

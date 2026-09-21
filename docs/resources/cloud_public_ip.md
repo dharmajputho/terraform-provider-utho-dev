@@ -1,17 +1,15 @@
 ---
-page_title: "Cloud Instance Public IP - Utho"
+page_title: "Cloud Public IP - Utho"
 subcategory: "Compute / Cloud Instances"
 description: |-
-  Assign or release an additional public IP address on a Utho Cloud instance.
+  Assign or release additional public IPs on a Utho Cloud instance.
 ---
 
 # utho_cloud_public_ip
 
-Assigns an additional public IPv4 address to a Utho Cloud instance.
-Each instance can have multiple public IPs. The IP is automatically
-configured on the instance within a few seconds.
+Assigns an additional public IP address to an existing cloud instance. Use this when an instance needs multiple public IPs — for example, hosting multiple SSL certificates, running multiple services on separate IPs, or IP-based routing.
 
-Destroying this resource releases the IP address.
+~> **Note:** This is for assigning *additional* public IPs. The primary public IP is configured via `enable_publicip` in `utho_cloud` at creation time.
 
 ## Example Usage
 
@@ -27,22 +25,22 @@ output "extra_ip" {
 }
 ```
 
-### Assign multiple public IPs to the same instance
+### Multiple public IPs for multi-service hosting
 
 ```hcl
-resource "utho_cloud_public_ip" "ip_1" {
+resource "utho_cloud_public_ip" "service_a" {
   cloud_id = utho_cloud.web.id
 }
 
-resource "utho_cloud_public_ip" "ip_2" {
+resource "utho_cloud_public_ip" "service_b" {
   cloud_id = utho_cloud.web.id
 }
 
-output "additional_ips" {
-  value = [
-    utho_cloud_public_ip.ip_1.ip,
-    utho_cloud_public_ip.ip_2.ip,
-  ]
+output "service_ips" {
+  value = {
+    service_a = utho_cloud_public_ip.service_a.ip
+    service_b = utho_cloud_public_ip.service_b.ip
+  }
 }
 ```
 
@@ -50,18 +48,18 @@ output "additional_ips" {
 
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
-| `cloud_id` | String | Yes      | The ID of the cloud instance. Changing this forces a new resource. |
+| `cloud_id` | String | Yes      | Cloud instance ID. Changing this forces a new resource. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Identifier in the format `{cloud_id}:{ip}`. |
-| `ip`      | String | The additional public IPv4 address assigned by Utho. |
+| `id`      | String | Unique IP assignment ID. |
+| `ip`      | String | Assigned public IP address. |
 
 ## Notes
 
-- The IP is assigned automatically — a specific address cannot be requested.
-- Network configuration completes within 30–60 seconds of assignment.
-- Releasing the IP takes 30–40 seconds to fully propagate.
-- This resource manages **additional** IPs only. The primary IP is managed by `utho_cloud`.
+- Additional public IPs are billed separately.
+- Destroying this resource releases the IP — it will no longer be reachable.
+- Configure the additional IP inside the OS using standard networking tools (`ip addr`, `netplan`, etc.).
+- For static IPs that persist across instance recreations, use `utho_elastic_ip` instead.
