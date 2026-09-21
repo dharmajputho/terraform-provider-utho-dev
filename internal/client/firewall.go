@@ -154,13 +154,17 @@ func (c *Client) DeleteFirewallRule(firewallID string, ruleID string) error {
 	endpoint := fmt.Sprintf("/firewall/%s/rule/%s/delete", firewallID, ruleID)
 	respBytes, err := c.Delete(endpoint)
 	if err != nil {
+		// 404 means rule already deleted — treat as success
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "Not Found") {
+			return nil
+		}
 		return fmt.Errorf("failed to delete firewall rule: %w", err)
 	}
 	result, err := parseFirewallResponse(respBytes)
 	if err != nil {
-		return fmt.Errorf("failed to parse delete firewall rule response: %w", err)
+		return nil
 	}
-	if result["status"] != "success" {
+	if result["status"] != nil && result["status"] != "success" {
 		return fmt.Errorf("delete firewall rule failed: %s", result["message"])
 	}
 	return nil
