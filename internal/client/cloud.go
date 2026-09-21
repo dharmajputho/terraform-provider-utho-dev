@@ -62,6 +62,13 @@ type CloudMeta struct {
 	CurrentPage int `json:"currentpage"`
 }
 
+type CloudStorage struct {
+	ID   string `json:"id"`
+	Size string `json:"size"`
+	Type string `json:"type"`
+	Bus  string `json:"bus"`
+}
+
 type CloudInstance struct {
 	CloudID      string          `json:"cloudid"`
 	Hostname     string          `json:"hostname"`
@@ -78,6 +85,7 @@ type CloudInstance struct {
 	DCLocation   CloudDCLocation `json:"dclocation"`
 	Plan         CloudPlan       `json:"plan"`
 	CreatedAt    string          `json:"created_at"`
+	Storages     []CloudStorage  `json:"storages"`
 }
 
 type CloudImage struct {

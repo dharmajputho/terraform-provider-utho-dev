@@ -110,16 +110,28 @@ func (r *CloudStorageResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	// ID is cloud_id:size so it is unique per attachment
+	// Look up disk ID from cloud instance after adding storage
+	diskID := ""
+	cloud, err2 := r.client.GetCloud(plan.CloudID.ValueString())
+	if err2 == nil && cloud != nil {
+		// Find the newly added disk — look for one matching our size
+		targetSize := fmt.Sprintf("%d", plan.SizeGB.ValueInt64())
+		for _, s := range cloud.Storages {
+			if s.Size == targetSize || s.Size == fmt.Sprintf("%dGB", plan.SizeGB.ValueInt64()) {
+				diskID = s.ID
+				break
+			}
+		}
+		// If not found by size, take the last one
+		if diskID == "" && len(cloud.Storages) > 0 {
+			diskID = cloud.Storages[len(cloud.Storages)-1].ID
+		}
+	}
+
+	plan.DiskID = types.StringValue(diskID)
 	plan.ID = types.StringValue(
 		fmt.Sprintf("%s:%d", plan.CloudID.ValueString(), plan.SizeGB.ValueInt64()),
 	)
-
-	// disk_id comes back from the API but current response doesn't include it
-	// Customer needs to check dashboard and set it for update/delete operations
-	if plan.DiskID.IsNull() || plan.DiskID.IsUnknown() {
-		plan.DiskID = types.StringValue("")
-	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
