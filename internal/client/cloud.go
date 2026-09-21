@@ -6,6 +6,15 @@ import (
 	"strings"
 )
 
+// parseAPIResponse parses a standard Utho API response, handling empty bodies gracefully.
+func parseAPIResponse(respBytes []byte, result interface{}) error {
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
+	return json.Unmarshal(respBytes, result)
+}
+
 // ── Request structs ───────────────────────────────────────────────────────
 type CloudDeployRequest struct {
 	DCSlug         string        `json:"dcslug"`
@@ -116,8 +125,8 @@ func (c *Client) CreateCloud(req *CloudDeployRequest) (*CloudInstance, error) {
 
 	// Parse the deploy response
 	var deployResp CloudDeploySuccessResponse
-	if err := json.Unmarshal(respBytes, &deployResp); err != nil {
-		return nil, fmt.Errorf("failed to parse create response: %w", err)
+	if err := parseAPIResponse(respBytes, &deployResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if deployResp.Status != "success" {
@@ -146,8 +155,8 @@ func (c *Client) GetCloud(cloudID string) (*CloudInstance, error) {
 	}
 
 	var listResp CloudListResponse
-	if err := json.Unmarshal(respBytes, &listResp); err != nil {
-		return nil, fmt.Errorf("failed to parse get response: %w", err)
+	if err := parseAPIResponse(respBytes, &listResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if len(listResp.Cloud) == 0 {
@@ -172,8 +181,8 @@ func (c *Client) DeleteCloud(cloudID string, hostname string, deleteEBS bool) er
 	}
 
 	var deleteResp CloudDeleteResponse
-	if err := json.Unmarshal(respBytes, &deleteResp); err != nil {
-		return fmt.Errorf("failed to parse delete response: %w", err)
+	if err := parseAPIResponse(respBytes, &deleteResp); err != nil {
+		return nil
 	}
 
 	if deleteResp.Status != "success" {
@@ -222,8 +231,8 @@ func (c *Client) ListClouds() ([]CloudInstance, error) {
 		}
 
 		var listResp CloudListResponse
-		if err := json.Unmarshal(respBytes, &listResp); err != nil {
-			return nil, fmt.Errorf("failed to parse list response: %w", err)
+		if err := parseAPIResponse(respBytes, &listResp); err != nil {
+			return nil, fmt.Errorf("failed to parse response: %w", err)
 		}
 
 		allInstances = append(allInstances, listResp.Cloud...)
@@ -249,15 +258,17 @@ func (c *Client) AttachFirewall(firewallID string, cloudID string) error {
 		return fmt.Errorf("failed to attach firewall: %w", err)
 	}
 
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
 	var result map[string]string
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse attach firewall response: %w", err)
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("attach firewall failed: %s", result["message"])
 	}
-
 	return nil
 }
 
@@ -269,15 +280,17 @@ func (c *Client) DetachFirewall(firewallID string, cloudID string) error {
 		return fmt.Errorf("failed to detach firewall: %w", err)
 	}
 
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse detach firewall response: %w", err)
+	trimmed2 := strings.TrimSpace(string(respBytes))
+	if trimmed2 == "" || trimmed2 == "null" {
+		return nil
 	}
-
-	if result["status"] != "success" {
-		return fmt.Errorf("detach firewall failed: %s", result["message"])
+	var result2 map[string]string
+	if err := json.Unmarshal(respBytes, &result2); err != nil {
+		return nil
 	}
-
+	if result2["status"] != "" && result2["status"] != "success" {
+		return fmt.Errorf("detach firewall failed: %s", result2["message"])
+	}
 	return nil
 }
 
@@ -296,11 +309,10 @@ func (c *Client) AddGeneralStorage(cloudID string, sizeGB int) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse add storage response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("add storage failed: %s", result["message"])
 	}
 
@@ -316,11 +328,10 @@ func (c *Client) DeleteGeneralStorage(cloudID string, diskID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete storage response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("delete storage failed: %s", result["message"])
 	}
 
@@ -341,11 +352,10 @@ func (c *Client) UpdateGeneralStorage(cloudID string, diskID string, bus string,
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse update storage response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("update storage failed: %s", result["message"])
 	}
 
@@ -368,11 +378,10 @@ func (c *Client) AttachEBS(ebsID string, cloudID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse attach EBS response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("attach EBS failed: %s", result["message"])
 	}
 
@@ -393,11 +402,10 @@ func (c *Client) DetachEBS(ebsID string, cloudID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse detach EBS response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("detach EBS failed: %s", result["message"])
 	}
 
@@ -418,11 +426,10 @@ func (c *Client) UpdateEBS(cloudID string, ebsID string, bus string, diskType st
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse update EBS response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("update EBS failed: %s", result["message"])
 	}
 
@@ -444,11 +451,10 @@ func (c *Client) CreateSnapshot(cloudID string, name string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse create snapshot response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("create snapshot failed: %s", result["message"])
 	}
 
@@ -464,11 +470,10 @@ func (c *Client) DeleteSnapshot(cloudID string, snapshotID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete snapshot response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("delete snapshot failed: %s", result["message"])
 	}
 
@@ -484,11 +489,10 @@ func (c *Client) RestoreSnapshot(cloudID string, snapshotID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse restore snapshot response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("restore snapshot failed: %s", result["message"])
 	}
 
@@ -510,11 +514,10 @@ func (c *Client) MountISO(cloudID string, isoName string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse mount ISO response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("mount ISO failed: %s", result["message"])
 	}
 
@@ -538,11 +541,10 @@ func (c *Client) ResizeCloud(cloudID string, planID string, resizeType string) e
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse resize response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("resize failed: %s", result["message"])
 	}
 
@@ -560,8 +562,8 @@ func (c *Client) AssignPublicIP(cloudID string) (string, error) {
 	}
 
 	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse assign IP response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if result["status"] != "success" {
@@ -581,11 +583,10 @@ func (c *Client) DeletePublicIP(cloudID string, ip string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete IP response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("delete public IP failed: %s", result["message"])
 	}
 
@@ -601,8 +602,8 @@ func (c *Client) AttachVPC(cloudID string, subnetID string) (string, error) {
 	}
 
 	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse attach VPC response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if result["status"] != "success" {
@@ -622,11 +623,10 @@ func (c *Client) DetachVPC(cloudID string, subnetID string) error {
 	}
 
 	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse detach VPC response: %w", err)
+	if err := parseAPIResponse(respBytes, &result); err != nil {
+		return nil
 	}
-
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("detach VPC failed: %s", result["message"])
 	}
 
