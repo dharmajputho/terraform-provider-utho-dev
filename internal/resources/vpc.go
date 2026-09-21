@@ -206,6 +206,7 @@ func (r *SubnetResource) Create(ctx context.Context, req resource.CreateRequest,
 	plan.ID = types.StringValue(id)
 	plan.Gateway = types.StringValue("")
 	plan.Status = types.StringValue("Active")
+	plan.DCSlug = types.StringValue("")
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
