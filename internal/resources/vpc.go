@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -246,6 +247,21 @@ func (r *SubnetResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 	if err := r.client.DeleteSubnet(state.ID.ValueString()); err != nil {
-		resp.Diagnostics.AddError("Error deleting subnet", fmt.Sprintf("%s", err))
+		errMsg := err.Error()
+		// If subnet is still attached to resources, remove from state and warn user.
+		// The subnet must be manually detached from all resources (LB, cloud instances,
+		// NAT gateways, IPSec etc.) before it can be deleted.
+		if strings.Contains(errMsg, "attached with resources") || strings.Contains(errMsg, "Please release subnet") {
+			resp.Diagnostics.AddWarning(
+				"Subnet not deleted — still attached to resources",
+				fmt.Sprintf(
+					"Subnet %s could not be deleted because it is still attached to one or more resources (load balancers, cloud instances, NAT gateways, etc.). "+
+						"Please detach the subnet from all resources in the Utho Console, then run `terraform destroy` again or manually delete the subnet and run `terraform state rm` to remove it from state. "+
+						"Original error: %s", state.ID.ValueString(), errMsg,
+				),
+			)
+			return
+		}
+		resp.Diagnostics.AddError("Error deleting subnet", errMsg)
 	}
 }
