@@ -260,6 +260,38 @@ func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
 	return fmt.Errorf("delete frontend failed: LB still processing after retries")
 }
 
+// fetchBackendID looks up a backend ID from the LB by matching cloudID or IP
+func (c *Client) fetchBackendID(lbID string, frontendID string, cloudID string, ip string) (string, error) {
+	lb, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
+	if err != nil {
+		return "unknown", nil
+	}
+	var lbResp map[string]interface{}
+	if json.Unmarshal(lb, &lbResp) != nil {
+		return "unknown", nil
+	}
+	lbs, _ := lbResp["loadbalancers"].([]interface{})
+	if len(lbs) == 0 {
+		return "unknown", nil
+	}
+	lbData, _ := lbs[0].(map[string]interface{})
+	frontends, _ := lbData["frontends"].([]interface{})
+	for _, fe := range frontends {
+		feMap, _ := fe.(map[string]interface{})
+		if fmt.Sprintf("%v", feMap["id"]) == frontendID {
+			backends, _ := feMap["backends"].([]interface{})
+			for _, be := range backends {
+				beMap, _ := be.(map[string]interface{})
+				if (cloudID != "" && fmt.Sprintf("%v", beMap["cloudid"]) == cloudID) ||
+					(ip != "" && fmt.Sprintf("%v", beMap["ip"]) == ip) {
+					return fmt.Sprintf("%v", beMap["id"]), nil
+				}
+			}
+		}
+	}
+	return "unknown", nil
+}
+
 func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (string, error) {
 	// Check LB is ready before adding backend
 	if err := c.checkLBReady(lbID); err != nil {
@@ -276,7 +308,12 @@ func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (str
 			return "", fmt.Errorf("failed to parse add backend response: %w", err)
 		}
 		if result["status"] == "success" {
-			return fmt.Sprintf("%v", result["id"]), nil
+			// Try to get ID from response first
+			if result["id"] != nil && fmt.Sprintf("%v", result["id"]) != "<nil>" && fmt.Sprintf("%v", result["id"]) != "" {
+				return fmt.Sprintf("%v", result["id"]), nil
+			}
+			// API didn't return ID — fetch it from the LB
+			return c.fetchBackendID(lbID, req.FrontendID, req.CloudID, req.IP)
 		}
 		msg := fmt.Sprintf("%v", result["message"])
 
@@ -284,33 +321,7 @@ func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (str
 		if duplicates, ok := result["duplicates"]; ok {
 			dups, _ := duplicates.([]interface{})
 			if len(dups) > 0 {
-				// Backend was already added — get its ID from LB
-				lb, err2 := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
-				if err2 == nil {
-					var lbResp map[string]interface{}
-					if json.Unmarshal(lb, &lbResp) == nil {
-						if lbs, ok := lbResp["loadbalancers"].([]interface{}); ok && len(lbs) > 0 {
-							lbData, _ := lbs[0].(map[string]interface{})
-							if frontends, ok := lbData["frontends"].([]interface{}); ok {
-								for _, fe := range frontends {
-									feMap, _ := fe.(map[string]interface{})
-									if fmt.Sprintf("%v", feMap["id"]) == req.FrontendID {
-										if backends, ok := feMap["backends"].([]interface{}); ok {
-											for _, be := range backends {
-												beMap, _ := be.(map[string]interface{})
-												if fmt.Sprintf("%v", beMap["cloudid"]) == req.CloudID ||
-													fmt.Sprintf("%v", beMap["ip"]) == req.IP {
-													return fmt.Sprintf("%v", beMap["id"]), nil
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				return "unknown", nil
+				return c.fetchBackendID(lbID, req.FrontendID, req.CloudID, req.IP)
 			}
 		}
 
