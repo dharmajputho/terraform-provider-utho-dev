@@ -132,19 +132,27 @@ func (c *Client) DeleteLoadBalancer(lbID string) error {
 }
 
 func (c *Client) AddLBFrontend(lbID string, req *LoadBalancerFrontendRequest) (string, error) {
-	respBytes, err := c.Post(fmt.Sprintf("/loadbalancer/%s/frontend", lbID), req)
-	if err != nil {
-		return "", fmt.Errorf("failed to add frontend: %w", err)
+	endpoint := fmt.Sprintf("/loadbalancer/%s/frontend", lbID)
+	for attempt := 0; attempt < 6; attempt++ {
+		respBytes, err := c.Post(endpoint, req)
+		if err != nil {
+			return "", fmt.Errorf("failed to add frontend: %w", err)
+		}
+		var result map[string]interface{}
+		if err := json.Unmarshal(respBytes, &result); err != nil {
+			return "", fmt.Errorf("failed to parse add frontend response: %w", err)
+		}
+		if result["status"] == "success" {
+			return fmt.Sprintf("%v", result["id"]), nil
+		}
+		msg := fmt.Sprintf("%v", result["message"])
+		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		return "", fmt.Errorf("add frontend failed: %s", msg)
 	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse add frontend response: %w", err)
-	}
-	if result["status"] != "success" {
-		return "", fmt.Errorf("add frontend failed: %s", result["message"])
-	}
-	id := fmt.Sprintf("%v", result["id"])
-	return id, nil
+	return "", fmt.Errorf("add frontend failed: LB still processing after retries")
 }
 
 func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
@@ -193,19 +201,27 @@ func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
 }
 
 func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (string, error) {
-	respBytes, err := c.Post(fmt.Sprintf("/loadbalancer/%s/backend", lbID), req)
-	if err != nil {
-		return "", fmt.Errorf("failed to add backend: %w", err)
+	endpoint := fmt.Sprintf("/loadbalancer/%s/backend", lbID)
+	for attempt := 0; attempt < 6; attempt++ {
+		respBytes, err := c.Post(endpoint, req)
+		if err != nil {
+			return "", fmt.Errorf("failed to add backend: %w", err)
+		}
+		var result map[string]interface{}
+		if err := json.Unmarshal(respBytes, &result); err != nil {
+			return "", fmt.Errorf("failed to parse add backend response: %w", err)
+		}
+		if result["status"] == "success" {
+			return fmt.Sprintf("%v", result["id"]), nil
+		}
+		msg := fmt.Sprintf("%v", result["message"])
+		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		return "", fmt.Errorf("add backend failed: %s", msg)
 	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse add backend response: %w", err)
-	}
-	if result["status"] != "success" {
-		return "", fmt.Errorf("add backend failed: %s", result["message"])
-	}
-	id := fmt.Sprintf("%v", result["id"])
-	return id, nil
+	return "", fmt.Errorf("add backend failed: LB still processing after retries")
 }
 
 func (c *Client) DeleteLBBackend(lbID string, backendID string) error {
