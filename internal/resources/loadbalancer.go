@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -132,7 +133,10 @@ func (r *LoadBalancerResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 	if err := r.client.DeleteLoadBalancer(state.ID.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error deleting load balancer", fmt.Sprintf("%s", err))
+		return
 	}
+	// Wait for Utho backend to release VPC subnet attachment
+	time.Sleep(15 * time.Second)
 }
 
 // ══════════════════════════════════════════════════════════════
