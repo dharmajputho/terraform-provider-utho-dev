@@ -449,11 +449,15 @@ func (c *Client) UpdateLBSettings(lbID string, req *LoadBalancerSettingsRequest)
 	if err != nil {
 		return fmt.Errorf("failed to update load balancer settings: %w", err)
 	}
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
 	var result map[string]string
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse update settings response: %w", err)
+		return nil
 	}
-	if result["status"] != "success" {
+	if result["status"] != "" && result["status"] != "success" {
 		return fmt.Errorf("update settings failed: %s", result["message"])
 	}
 	return nil
