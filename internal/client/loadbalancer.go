@@ -78,6 +78,34 @@ type LoadBalancerListResponse struct {
 
 // ── API methods ───────────────────────────────────────────────────────────
 
+// waitForLBActive polls until the LB app_status is Active or timeout
+func (c *Client) waitForLBActive(lbID string) error {
+	for i := 0; i < 24; i++ { // max 2 minutes
+		time.Sleep(5 * time.Second)
+		respBytes, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
+		if err != nil {
+			continue
+		}
+		var resp map[string]interface{}
+		if json.Unmarshal(respBytes, &resp) != nil {
+			continue
+		}
+		lbs, _ := resp["loadbalancers"].([]interface{})
+		if len(lbs) == 0 {
+			continue
+		}
+		lb, _ := lbs[0].(map[string]interface{})
+		appStatus := fmt.Sprintf("%v", lb["app_status"])
+		if appStatus == "Active" {
+			return nil
+		}
+		if appStatus == "Failed" {
+			return fmt.Errorf("LB entered Failed state")
+		}
+	}
+	return nil // proceed anyway after timeout
+}
+
 func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, error) {
 	respBytes, err := c.Post("/loadbalancer", req)
 	if err != nil {
@@ -132,6 +160,8 @@ func (c *Client) DeleteLoadBalancer(lbID string) error {
 }
 
 func (c *Client) AddLBFrontend(lbID string, req *LoadBalancerFrontendRequest) (string, error) {
+	// Wait for LB to be fully active before adding frontend
+	_ = c.waitForLBActive(lbID)
 	endpoint := fmt.Sprintf("/loadbalancer/%s/frontend", lbID)
 	for attempt := 0; attempt < 6; attempt++ {
 		respBytes, err := c.Post(endpoint, req)
@@ -201,6 +231,8 @@ func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
 }
 
 func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (string, error) {
+	// Wait for LB to be fully active before adding backend
+	_ = c.waitForLBActive(lbID)
 	endpoint := fmt.Sprintf("/loadbalancer/%s/backend", lbID)
 	for attempt := 0; attempt < 6; attempt++ {
 		respBytes, err := c.Post(endpoint, req)
@@ -215,6 +247,41 @@ func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (str
 			return fmt.Sprintf("%v", result["id"]), nil
 		}
 		msg := fmt.Sprintf("%v", result["message"])
+
+		// Backend already exists (duplicate IP) — fetch its ID from the LB
+		if duplicates, ok := result["duplicates"]; ok {
+			dups, _ := duplicates.([]interface{})
+			if len(dups) > 0 {
+				// Backend was already added — get its ID from LB
+				lb, err2 := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
+				if err2 == nil {
+					var lbResp map[string]interface{}
+					if json.Unmarshal(lb, &lbResp) == nil {
+						if lbs, ok := lbResp["loadbalancers"].([]interface{}); ok && len(lbs) > 0 {
+							lbData, _ := lbs[0].(map[string]interface{})
+							if frontends, ok := lbData["frontends"].([]interface{}); ok {
+								for _, fe := range frontends {
+									feMap, _ := fe.(map[string]interface{})
+									if fmt.Sprintf("%v", feMap["id"]) == req.FrontendID {
+										if backends, ok := feMap["backends"].([]interface{}); ok {
+											for _, be := range backends {
+												beMap, _ := be.(map[string]interface{})
+												if fmt.Sprintf("%v", beMap["cloudid"]) == req.CloudID ||
+													fmt.Sprintf("%v", beMap["ip"]) == req.IP {
+													return fmt.Sprintf("%v", beMap["id"]), nil
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+				return "unknown", nil
+			}
+		}
+
 		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
 			time.Sleep(10 * time.Second)
 			continue
