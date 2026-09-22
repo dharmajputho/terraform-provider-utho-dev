@@ -94,27 +94,44 @@ func (c *Client) checkLBReady(lbID string) error {
 		return fmt.Errorf("load balancer %s not found", lbID)
 	}
 	lb, _ := lbs[0].(map[string]interface{})
+	status := fmt.Sprintf("%v", lb["status"])
 	appStatus := fmt.Sprintf("%v", lb["app_status"])
-	switch appStatus {
-	case "Active":
+
+	// LB is ready when status=Active AND app_status=Installed
+	if status == "Active" && appStatus == "Installed" {
 		return nil
-	case "Pending":
+	}
+
+	// Still processing
+	if appStatus == "Pending" || appStatus == "" {
 		return fmt.Errorf(
-			"load balancer is not ready yet (app_status: Pending). " +
-				"Please wait for it to become Active in the Utho Console, then run terraform apply again",
-		)
-	case "Failed":
-		return fmt.Errorf(
-			"load balancer is in a Failed state (app_status: Failed). " +
-				"Please check the Utho Console for details, resolve the issue, then run terraform apply again",
-		)
-	default:
-		return fmt.Errorf(
-			"load balancer is not ready (app_status: %s). "+
-				"Please wait for it to become Active, then run terraform apply again",
-			appStatus,
+			"load balancer is not ready yet (status: %s, app_status: %s). "+
+				"Please wait for status=Active and app_status=Installed in the Utho Console, "+
+				"then run terraform apply again",
+			status, appStatus,
 		)
 	}
+
+	// Failed state
+	if appStatus == "Failed" {
+		return fmt.Errorf(
+			"load balancer is in a Failed state. " +
+				"Please check the Utho Console for details, resolve the issue, " +
+				"then run terraform apply again",
+		)
+	}
+
+	// Any other combination — not ready yet
+	if status != "Active" || appStatus != "Installed" {
+		return fmt.Errorf(
+			"load balancer is not ready (status: %s, app_status: %s). "+
+				"Please wait for status=Active and app_status=Installed, "+
+				"then run terraform apply again",
+			status, appStatus,
+		)
+	}
+
+	return nil
 }
 
 func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, error) {
