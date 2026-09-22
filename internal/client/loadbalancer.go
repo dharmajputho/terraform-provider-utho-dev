@@ -3,6 +3,8 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -139,18 +141,48 @@ func (c *Client) AddLBFrontend(lbID string, req *LoadBalancerFrontendRequest) (s
 }
 
 func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
-	respBytes, err := c.Delete(fmt.Sprintf("/loadbalancer/%s/frontend/%s", lbID, frontendID))
-	if err != nil {
-		return fmt.Errorf("failed to delete frontend: %w", err)
+	endpoint := fmt.Sprintf("/loadbalancer/%s/frontend/%s", lbID, frontendID)
+
+	// Retry up to 5 times to handle "pending action" errors
+	for attempt := 0; attempt < 5; attempt++ {
+		respBytes, err := c.Delete(endpoint)
+		if err != nil {
+			// 404 = already deleted
+			if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+				return nil
+			}
+			return fmt.Errorf("failed to delete frontend: %w", err)
+		}
+
+		trimmed := strings.TrimSpace(string(respBytes))
+		if trimmed == "" || trimmed == "null" {
+			return nil
+		}
+
+		var result map[string]string
+		if err := json.Unmarshal(respBytes, &result); err != nil {
+			return nil
+		}
+
+		if result["status"] == "success" {
+			return nil
+		}
+
+		msg := result["message"]
+		// Not found = already deleted
+		if strings.Contains(msg, "not found") || strings.Contains(msg, "Not Found") {
+			return nil
+		}
+		// Pending action = retry after delay
+		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		return fmt.Errorf("delete frontend failed: %s", msg)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete frontend response: %w", err)
-	}
-	if result["status"] != "success" {
-		return fmt.Errorf("delete frontend failed: %s", result["message"])
-	}
-	return nil
+
+	return fmt.Errorf("delete frontend failed: LB still processing after retries")
 }
 
 func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (string, error) {
