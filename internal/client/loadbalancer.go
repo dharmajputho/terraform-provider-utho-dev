@@ -102,36 +102,17 @@ func (c *Client) checkLBReady(lbID string) error {
 		return nil
 	}
 
-	// Still processing
-	if appStatus == "Pending" || appStatus == "" {
-		return fmt.Errorf(
-			"load balancer is not ready yet (status: %s, app_status: %s). "+
-				"Please wait for status=Active and app_status=Installed in the Utho Console, "+
-				"then run terraform apply again",
-			status, appStatus,
-		)
-	}
-
 	// Failed state
 	if appStatus == "Failed" {
 		return fmt.Errorf(
-			"load balancer is in a Failed state. " +
-				"Please check the Utho Console for details, resolve the issue, " +
-				"then run terraform apply again",
+			"load balancer is in a failed state — please check the Utho Console and resolve the issue, then run terraform apply again",
 		)
 	}
 
-	// Any other combination — not ready yet
-	if status != "Active" || appStatus != "Installed" {
-		return fmt.Errorf(
-			"load balancer is not ready (status: %s, app_status: %s). "+
-				"Please wait for status=Active and app_status=Installed, "+
-				"then run terraform apply again",
-			status, appStatus,
-		)
-	}
-
-	return nil
+	// Not ready yet
+	return fmt.Errorf(
+		"load balancer is not up yet — please wait a moment and run terraform apply again",
+	)
 }
 
 func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, error) {
