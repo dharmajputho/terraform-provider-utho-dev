@@ -217,6 +217,8 @@ terraform apply   # create resources
 |-------------|-------------|
 | [utho_clouds](data-sources/clouds) | List all cloud instances in your account |
 | [utho_kubernetes_config](data-sources/kubernetes_config) | Fetch kubeconfig for a Kubernetes cluster |
+| [utho_loadbalancers](data-sources/loadbalancers) | List load balancers |
+| [utho_ssl_certificates](data-sources/ssl_certificates) | List SSL certificates |
 
 ## Full Production Stack Example
 
