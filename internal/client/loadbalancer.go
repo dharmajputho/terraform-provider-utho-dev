@@ -78,44 +78,47 @@ type LoadBalancerListResponse struct {
 
 // ── API methods ───────────────────────────────────────────────────────────
 
-// checkLBReady verifies the LB is in Active state before allowing modifications.
-// Returns a clear error if not ready so the user knows what to do.
+// checkLBReady polls until the LB is ready (status=Active, app_status=Installed).
+// Polls every 10 seconds for up to 5 minutes before giving up.
 func (c *Client) checkLBReady(lbID string) error {
-	respBytes, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
-	if err != nil {
-		return fmt.Errorf("failed to check load balancer status: %w", err)
-	}
-	var resp map[string]interface{}
-	if json.Unmarshal(respBytes, &resp) != nil {
-		return nil // can't parse, proceed anyway
-	}
-	lbs, _ := resp["loadbalancers"].([]interface{})
-	if len(lbs) == 0 {
-		return fmt.Errorf("load balancer %s not found", lbID)
-	}
-	lb, _ := lbs[0].(map[string]interface{})
-	status := fmt.Sprintf("%v", lb["status"])
-	appStatus := fmt.Sprintf("%v", lb["app_status"])
+	for attempt := 0; attempt < 30; attempt++ {
+		if attempt > 0 {
+			time.Sleep(10 * time.Second)
+		}
 
-	// LB is ready when status=Active AND app_status=Installed
-	// null app_status means LB is still initializing
-	if appStatus == "<nil>" || appStatus == "null" || appStatus == "" {
-		return fmt.Errorf("load balancer is not up yet — please wait a moment and run terraform apply again")
-	}
-	if status == "Active" && appStatus == "Installed" {
-		return nil
+		respBytes, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
+		if err != nil {
+			continue
+		}
+		var resp map[string]interface{}
+		if json.Unmarshal(respBytes, &resp) != nil {
+			continue
+		}
+		lbs, _ := resp["loadbalancers"].([]interface{})
+		if len(lbs) == 0 {
+			continue
+		}
+		lb, _ := lbs[0].(map[string]interface{})
+		status := fmt.Sprintf("%v", lb["status"])
+		appStatus := fmt.Sprintf("%v", lb["app_status"])
+
+		// Ready
+		if status == "Active" && appStatus == "Installed" {
+			return nil
+		}
+
+		// Failed — no point waiting
+		if appStatus == "Failed" {
+			return fmt.Errorf(
+				"load balancer entered a Failed state — please check the Utho Console and resolve the issue, then run terraform apply again",
+			)
+		}
+
+		// Still pending — continue polling
 	}
 
-	// Failed state
-	if appStatus == "Failed" {
-		return fmt.Errorf(
-			"load balancer is in a failed state — please check the Utho Console and resolve the issue, then run terraform apply again",
-		)
-	}
-
-	// Not ready yet
 	return fmt.Errorf(
-		"load balancer is not up yet — please wait a moment and run terraform apply again",
+		"load balancer did not become ready after 5 minutes — please check the Utho Console and try again",
 	)
 }
 
