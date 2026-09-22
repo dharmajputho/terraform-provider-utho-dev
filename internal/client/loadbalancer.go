@@ -98,6 +98,10 @@ func (c *Client) checkLBReady(lbID string) error {
 	appStatus := fmt.Sprintf("%v", lb["app_status"])
 
 	// LB is ready when status=Active AND app_status=Installed
+	// null app_status means LB is still initializing
+	if appStatus == "<nil>" || appStatus == "null" || appStatus == "" {
+		return fmt.Errorf("load balancer is not up yet — please wait a moment and run terraform apply again")
+	}
 	if status == "Active" && appStatus == "Installed" {
 		return nil
 	}
@@ -118,6 +122,14 @@ func (c *Client) checkLBReady(lbID string) error {
 func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, error) {
 	respBytes, err := c.Post("/loadbalancer", req)
 	if err != nil {
+		// On 504/timeout, LB may have been created — look it up by name
+		if strings.Contains(err.Error(), "504") || strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "connection reset") {
+			time.Sleep(5 * time.Second)
+			id, lookupErr := c.findLBByName(req.Name)
+			if lookupErr == nil && id != "" {
+				return id, nil
+			}
+		}
 		return "", fmt.Errorf("failed to create load balancer: %w", err)
 	}
 	var result map[string]interface{}
@@ -129,6 +141,24 @@ func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, err
 	}
 	id := fmt.Sprintf("%v", result["loadbalancerid"])
 	return id, nil
+}
+
+// findLBByName looks up a load balancer ID by name — used to recover from 504 timeouts
+func (c *Client) findLBByName(name string) (string, error) {
+	respBytes, err := c.Get("/loadbalancer")
+	if err != nil {
+		return "", err
+	}
+	var resp LoadBalancerListResponse
+	if err := json.Unmarshal(respBytes, &resp); err != nil {
+		return "", err
+	}
+	for _, lb := range resp.LoadBalancers {
+		if lb.Name == name {
+			return lb.ID, nil
+		}
+	}
+	return "", fmt.Errorf("LB not found")
 }
 
 func (c *Client) GetLoadBalancer(lbID string) (*LoadBalancerInstance, error) {
