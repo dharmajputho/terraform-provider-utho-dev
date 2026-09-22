@@ -92,6 +92,20 @@ func (r *LoadBalancerResource) Create(ctx context.Context, req resource.CreateRe
 	plan.DNS = types.StringValue("")
 	plan.Status = types.StringValue("Active")
 	plan.CreatedAt = types.StringValue("")
+
+	// Poll for IP/DNS to be assigned (usually takes 10-20s)
+	for i := 0; i < 12; i++ {
+		time.Sleep(5 * time.Second)
+		lb, err2 := r.client.GetLoadBalancer(id)
+		if err2 == nil && lb != nil && lb.IP != "" {
+			plan.IP = types.StringValue(lb.IP)
+			plan.DNS = types.StringValue(lb.DNS)
+			plan.Status = types.StringValue(lb.Status)
+			plan.CreatedAt = types.StringValue(lb.CreatedAt)
+			break
+		}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 

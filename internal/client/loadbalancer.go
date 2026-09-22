@@ -112,11 +112,18 @@ func (c *Client) GetLoadBalancer(lbID string) (*LoadBalancerInstance, error) {
 func (c *Client) DeleteLoadBalancer(lbID string) error {
 	respBytes, err := c.Delete(fmt.Sprintf("/loadbalancer/%s", lbID))
 	if err != nil {
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
 		return fmt.Errorf("failed to delete load balancer: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
 	}
 	var result map[string]string
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete load balancer response: %w", err)
+		return nil
 	}
 	if result["status"] != "success" {
 		return fmt.Errorf("delete load balancer failed: %s", result["message"])
@@ -202,18 +209,37 @@ func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (str
 }
 
 func (c *Client) DeleteLBBackend(lbID string, backendID string) error {
-	respBytes, err := c.Delete(fmt.Sprintf("/loadbalancer/%s/backend/%s", lbID, backendID))
-	if err != nil {
-		return fmt.Errorf("failed to delete backend: %w", err)
+	endpoint := fmt.Sprintf("/loadbalancer/%s/backend/%s", lbID, backendID)
+	for attempt := 0; attempt < 5; attempt++ {
+		respBytes, err := c.Delete(endpoint)
+		if err != nil {
+			if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+				return nil
+			}
+			return fmt.Errorf("failed to delete backend: %w", err)
+		}
+		trimmed := strings.TrimSpace(string(respBytes))
+		if trimmed == "" || trimmed == "null" {
+			return nil
+		}
+		var result map[string]string
+		if err := json.Unmarshal(respBytes, &result); err != nil {
+			return nil
+		}
+		if result["status"] == "success" {
+			return nil
+		}
+		msg := result["message"]
+		if strings.Contains(msg, "not found") || strings.Contains(msg, "Not Found") {
+			return nil
+		}
+		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		return fmt.Errorf("delete backend failed: %s", msg)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete backend response: %w", err)
-	}
-	if result["status"] != "success" {
-		return fmt.Errorf("delete backend failed: %s", result["message"])
-	}
-	return nil
+	return fmt.Errorf("delete backend failed: LB still processing after retries")
 }
 
 func (c *Client) AddLBACL(lbID string, req *LoadBalancerACLRequest) (string, error) {
@@ -248,18 +274,37 @@ func (c *Client) UpdateLBACL(lbID string, aclID string, req *LoadBalancerACLRequ
 }
 
 func (c *Client) DeleteLBACL(lbID string, aclID string) error {
-	respBytes, err := c.Delete(fmt.Sprintf("/loadbalancer/%s/acl/%s", lbID, aclID))
-	if err != nil {
-		return fmt.Errorf("failed to delete ACL rule: %w", err)
+	endpoint := fmt.Sprintf("/loadbalancer/%s/acl/%s", lbID, aclID)
+	for attempt := 0; attempt < 5; attempt++ {
+		respBytes, err := c.Delete(endpoint)
+		if err != nil {
+			if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+				return nil
+			}
+			return fmt.Errorf("failed to delete ACL rule: %w", err)
+		}
+		trimmed := strings.TrimSpace(string(respBytes))
+		if trimmed == "" || trimmed == "null" {
+			return nil
+		}
+		var result map[string]string
+		if err := json.Unmarshal(respBytes, &result); err != nil {
+			return nil
+		}
+		if result["status"] == "success" {
+			return nil
+		}
+		msg := result["message"]
+		if strings.Contains(msg, "not found") || strings.Contains(msg, "Not Found") {
+			return nil
+		}
+		if strings.Contains(msg, "pending action") || strings.Contains(msg, "in process") {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		return fmt.Errorf("delete ACL failed: %s", msg)
 	}
-	var result map[string]string
-	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return fmt.Errorf("failed to parse delete ACL response: %w", err)
-	}
-	if result["status"] != "success" {
-		return fmt.Errorf("delete ACL failed: %s", result["message"])
-	}
-	return nil
+	return fmt.Errorf("delete ACL failed: LB still processing after retries")
 }
 
 func (c *Client) UpdateLBSettings(lbID string, req *LoadBalancerSettingsRequest) error {
