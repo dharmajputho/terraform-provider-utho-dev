@@ -78,32 +78,43 @@ type LoadBalancerListResponse struct {
 
 // ── API methods ───────────────────────────────────────────────────────────
 
-// waitForLBActive polls until the LB app_status is Active or timeout
-func (c *Client) waitForLBActive(lbID string) error {
-	for i := 0; i < 24; i++ { // max 2 minutes
-		time.Sleep(5 * time.Second)
-		respBytes, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
-		if err != nil {
-			continue
-		}
-		var resp map[string]interface{}
-		if json.Unmarshal(respBytes, &resp) != nil {
-			continue
-		}
-		lbs, _ := resp["loadbalancers"].([]interface{})
-		if len(lbs) == 0 {
-			continue
-		}
-		lb, _ := lbs[0].(map[string]interface{})
-		appStatus := fmt.Sprintf("%v", lb["app_status"])
-		if appStatus == "Active" {
-			return nil
-		}
-		if appStatus == "Failed" {
-			return fmt.Errorf("LB entered Failed state")
-		}
+// checkLBReady verifies the LB is in Active state before allowing modifications.
+// Returns a clear error if not ready so the user knows what to do.
+func (c *Client) checkLBReady(lbID string) error {
+	respBytes, err := c.Get(fmt.Sprintf("/loadbalancer/%s", lbID))
+	if err != nil {
+		return fmt.Errorf("failed to check load balancer status: %w", err)
 	}
-	return nil // proceed anyway after timeout
+	var resp map[string]interface{}
+	if json.Unmarshal(respBytes, &resp) != nil {
+		return nil // can't parse, proceed anyway
+	}
+	lbs, _ := resp["loadbalancers"].([]interface{})
+	if len(lbs) == 0 {
+		return fmt.Errorf("load balancer %s not found", lbID)
+	}
+	lb, _ := lbs[0].(map[string]interface{})
+	appStatus := fmt.Sprintf("%v", lb["app_status"])
+	switch appStatus {
+	case "Active":
+		return nil
+	case "Pending":
+		return fmt.Errorf(
+			"load balancer is not ready yet (app_status: Pending). " +
+				"Please wait for it to become Active in the Utho Console, then run terraform apply again",
+		)
+	case "Failed":
+		return fmt.Errorf(
+			"load balancer is in a Failed state (app_status: Failed). " +
+				"Please check the Utho Console for details, resolve the issue, then run terraform apply again",
+		)
+	default:
+		return fmt.Errorf(
+			"load balancer is not ready (app_status: %s). "+
+				"Please wait for it to become Active, then run terraform apply again",
+			appStatus,
+		)
+	}
 }
 
 func (c *Client) CreateLoadBalancer(req *LoadBalancerCreateRequest) (string, error) {
@@ -160,8 +171,10 @@ func (c *Client) DeleteLoadBalancer(lbID string) error {
 }
 
 func (c *Client) AddLBFrontend(lbID string, req *LoadBalancerFrontendRequest) (string, error) {
-	// Wait for LB to be fully active before adding frontend
-	_ = c.waitForLBActive(lbID)
+	// Check LB is ready before adding frontend
+	if err := c.checkLBReady(lbID); err != nil {
+		return "", err
+	}
 	endpoint := fmt.Sprintf("/loadbalancer/%s/frontend", lbID)
 	for attempt := 0; attempt < 6; attempt++ {
 		respBytes, err := c.Post(endpoint, req)
@@ -231,8 +244,10 @@ func (c *Client) DeleteLBFrontend(lbID string, frontendID string) error {
 }
 
 func (c *Client) AddLBBackend(lbID string, req *LoadBalancerBackendRequest) (string, error) {
-	// Wait for LB to be fully active before adding backend
-	_ = c.waitForLBActive(lbID)
+	// Check LB is ready before adding backend
+	if err := c.checkLBReady(lbID); err != nil {
+		return "", err
+	}
 	endpoint := fmt.Sprintf("/loadbalancer/%s/backend", lbID)
 	for attempt := 0; attempt < 6; attempt++ {
 		respBytes, err := c.Post(endpoint, req)
