@@ -136,8 +136,8 @@ func (r *KubernetesResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	plan.ID = types.StringValue(id)
-	plan.Status = types.StringValue("Pending")
-	plan.IP = types.StringValue("")
+	plan.Status = types.StringValue("Active")
+	plan.IP = types.StringValue(r.client.GetK8sIP(id))
 	plan.DNS = types.StringValue("")
 	plan.CreatedAt = types.StringValue("")
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
@@ -163,6 +163,11 @@ func (r *KubernetesResource) Read(ctx context.Context, req resource.ReadRequest,
 	state.Status = types.StringValue(cluster.Status)
 	state.DNS = types.StringValue(cluster.DNS)
 	state.CreatedAt = types.StringValue(cluster.CreatedAt)
+	if cluster.IP != "" {
+		state.IP = types.StringValue(cluster.IP)
+	} else {
+		state.IP = types.StringValue(r.client.GetK8sIP(state.ID.ValueString()))
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -270,6 +275,13 @@ func (r *KubernetesNodePoolResource) Create(ctx context.Context, req resource.Cr
 }
 
 func (r *KubernetesNodePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state KubernetesNodePoolModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Node pool state is maintained locally — no GET API for individual pool
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *KubernetesNodePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

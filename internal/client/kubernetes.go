@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -73,8 +74,10 @@ type KubernetesClusterDetail struct {
 	DCSlug      string `json:"dcslug"`
 	NetworkType string `json:"network_type"`
 	Status      string `json:"status"`
+	AppStatus   string `json:"app_status"`
 	VPC         string `json:"vpc"`
 	DNS         string `json:"dns"`
+	IP          string `json:"ip"`
 	CreatedAt   string `json:"created_at"`
 }
 
@@ -82,10 +85,55 @@ type KubernetesDetailResponse struct {
 	Info struct {
 		Cluster KubernetesClusterDetail `json:"cluster"`
 	} `json:"info"`
-	RCode string `json:"rcode"`
+	K8s   []KubernetesCluster `json:"k8s"`
+	RCode string              `json:"rcode"`
 }
 
 // ── API methods ───────────────────────────────────────────────────────────
+
+// checkK8sReady polls until cluster is ready (status=Active, app_status=Installed)
+// K8s clusters take 5-15 minutes to provision
+func (c *Client) waitForK8sReady(clusterID string) error {
+	for attempt := 0; attempt < 60; attempt++ { // max 10 minutes
+		if attempt > 0 {
+			time.Sleep(10 * time.Second)
+		}
+		respBytes, err := c.Get(fmt.Sprintf("/kubernetes/%s", clusterID))
+		if err != nil {
+			continue
+		}
+		var resp KubernetesDetailResponse
+		if json.Unmarshal(respBytes, &resp) != nil {
+			continue
+		}
+		cluster := resp.Info.Cluster
+		if cluster.Status == "Active" && cluster.AppStatus == "Installed" {
+			return nil
+		}
+		if cluster.AppStatus == "Failed" {
+			return fmt.Errorf("kubernetes cluster entered a Failed state — please check the Utho Console")
+		}
+	}
+	return nil // proceed after timeout
+}
+
+// getK8sIP fetches the cluster IP from the list API
+func (c *Client) GetK8sIP(clusterID string) string {
+	respBytes, err := c.Get("/kubernetes")
+	if err != nil {
+		return ""
+	}
+	var resp KubernetesListResponse
+	if json.Unmarshal(respBytes, &resp) != nil {
+		return ""
+	}
+	for _, k := range resp.K8s {
+		if k.ID == clusterID {
+			return k.IP
+		}
+	}
+	return ""
+}
 
 func (c *Client) CreateKubernetesCluster(req *KubernetesDeployRequest) (string, error) {
 	respBytes, err := c.Post("/kubernetes/deploy", req)
@@ -100,6 +148,8 @@ func (c *Client) CreateKubernetesCluster(req *KubernetesDeployRequest) (string, 
 		return "", fmt.Errorf("create Kubernetes cluster failed: %s", result["message"])
 	}
 	id := fmt.Sprintf("%v", result["id"])
+	// Poll for cluster to be ready (takes 5-15 minutes)
+	_ = c.waitForK8sReady(id)
 	return id, nil
 }
 
