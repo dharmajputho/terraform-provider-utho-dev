@@ -132,8 +132,25 @@ output "kubeconfig_command" {
 
 | Argument    | Type   | Description |
 |-------------|--------|-------------|
-| `vpc`       | String | VPC subnet ID for a private cluster. Changing this forces a new resource. |
+| `vpc`       | String | VPC subnet ID. Required when `network_type` is `private` or `publicprivate`. Use `utho_subnet.name.id`. Changing this forces a new resource. |
 | `cpumodel`  | String | CPU preference: `amd` or `intel`. Changing this forces a new resource. |
+
+## Available Kubernetes Versions
+
+Use one of these values for `cluster_version`:
+
+| Version | Status |
+|---------|--------|
+| `1.28.9-utho` | Older |
+| `1.29.4-utho` | Older |
+| `1.30.0-utho` | Stable |
+| `1.31.14-utho` | Stable |
+| `1.32.10-utho` | Stable |
+| `1.34.2-utho` | Latest |
+| `1.35.6-utho` | Latest |
+| `1.36.2-utho` | Latest |
+
+~> **Tip:** Use the latest stable version (`1.32.10-utho`) for new clusters unless you have a specific version requirement.
 
 ### Node Pool Block
 
