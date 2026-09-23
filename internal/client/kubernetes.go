@@ -91,27 +91,32 @@ type KubernetesDetailResponse struct {
 
 // ── API methods ───────────────────────────────────────────────────────────
 
-// checkK8sReady polls until cluster is ready (status=Active, app_status=Installed)
+// waitForK8sReady polls until cluster is ready (status=Active, app_status=Installed)
+// Uses the list API since the detail API doesn't always return status fields
 // K8s clusters take 5-15 minutes to provision
 func (c *Client) waitForK8sReady(clusterID string) error {
 	for attempt := 0; attempt < 60; attempt++ { // max 10 minutes
 		if attempt > 0 {
 			time.Sleep(10 * time.Second)
 		}
-		respBytes, err := c.Get(fmt.Sprintf("/kubernetes/%s", clusterID))
+		respBytes, err := c.Get("/kubernetes")
 		if err != nil {
 			continue
 		}
-		var resp KubernetesDetailResponse
+		var resp KubernetesListResponse
 		if json.Unmarshal(respBytes, &resp) != nil {
 			continue
 		}
-		cluster := resp.Info.Cluster
-		if cluster.Status == "Active" && cluster.AppStatus == "Installed" {
-			return nil
-		}
-		if cluster.AppStatus == "Failed" {
-			return fmt.Errorf("kubernetes cluster entered a Failed state — please check the Utho Console")
+		for _, k := range resp.K8s {
+			if k.ID == clusterID {
+				if k.Status == "Active" && k.AppStatus == "Installed" {
+					return nil
+				}
+				if k.AppStatus == "Failed" {
+					return fmt.Errorf("kubernetes cluster entered a Failed state — please check the Utho Console")
+				}
+				break
+			}
 		}
 	}
 	return nil // proceed after timeout
