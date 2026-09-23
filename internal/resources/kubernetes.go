@@ -136,7 +136,7 @@ func (r *KubernetesResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	plan.ID = types.StringValue(id)
-	plan.Status = types.StringValue("Active")
+	plan.Status = types.StringValue("Pending")
 	plan.IP = types.StringValue(r.client.GetK8sIP(id))
 	plan.DNS = types.StringValue("")
 	plan.CreatedAt = types.StringValue("")

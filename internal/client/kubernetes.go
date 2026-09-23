@@ -153,8 +153,6 @@ func (c *Client) CreateKubernetesCluster(req *KubernetesDeployRequest) (string, 
 		return "", fmt.Errorf("create Kubernetes cluster failed: %s", result["message"])
 	}
 	id := fmt.Sprintf("%v", result["id"])
-	// Poll for cluster to be ready (takes 5-15 minutes)
-	_ = c.waitForK8sReady(id)
 	return id, nil
 }
 
