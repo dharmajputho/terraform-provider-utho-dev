@@ -149,9 +149,16 @@ func (r *ObjectStorageResource) Read(ctx context.Context, req resource.ReadReque
 
 	state.Status = types.StringValue(bucket.Status)
 	state.Access = types.StringValue(bucket.Access)
-	state.VersionEnabled = types.BoolValue(bucket.VersionEnabled)
-	state.AccessKey = types.StringValue(bucket.AccessKey)
-	state.SecretKey = types.StringValue(bucket.SecretKey)
+	// List API doesn't reliably return version_enabled — keep state value
+	if bucket.VersionEnabled {
+		state.VersionEnabled = types.BoolValue(true)
+	}
+	if bucket.AccessKey != "" {
+		state.AccessKey = types.StringValue(bucket.AccessKey)
+	}
+	if bucket.SecretKey != "" {
+		state.SecretKey = types.StringValue(bucket.SecretKey)
+	}
 	state.PlanGB = types.Int64Value(int64(bucket.PlanGB))
 	state.UsedGB = types.StringValue(fmt.Sprintf("%v", bucket.UsedGB))
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
