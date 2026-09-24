@@ -205,6 +205,17 @@ func (r *ObjectStorageResource) Update(ctx context.Context, req resource.UpdateR
 		}
 	}
 
+	// Copy known values from state into plan before saving
+	plan.ID = state.ID
+	plan.CreatedAt = state.CreatedAt
+	plan.Status = state.Status
+	plan.AccessKey = state.AccessKey
+	plan.SecretKey = state.SecretKey
+	plan.PlanGB = state.PlanGB
+	plan.UsedGB = state.UsedGB
+	if plan.VersionEnabled.IsUnknown() || plan.VersionEnabled.IsNull() {
+		plan.VersionEnabled = state.VersionEnabled
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
