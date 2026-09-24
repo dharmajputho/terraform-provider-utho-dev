@@ -126,10 +126,14 @@ func (r *ObjectStorageResource) Create(ctx context.Context, req resource.CreateR
 	plan.PlanGB = types.Int64Value(int64(bucket.PlanGB))
 	plan.UsedGB = types.StringValue(fmt.Sprintf("%v", bucket.UsedGB))
 	plan.Access = types.StringValue(bucket.Access)
-	// Don't overwrite version_enabled from API — list API doesn't return it reliably
-	// Keep the value from plan (what user requested)
-	if bucket.VersionEnabled {
-		plan.VersionEnabled = types.BoolValue(true)
+	// List API doesn't return version_enabled reliably
+	// Keep value from plan if set, default to false
+	if plan.VersionEnabled.IsNull() || plan.VersionEnabled.IsUnknown() {
+		if bucket.VersionEnabled {
+			plan.VersionEnabled = types.BoolValue(true)
+		} else {
+			plan.VersionEnabled = types.BoolValue(false)
+		}
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -153,9 +157,11 @@ func (r *ObjectStorageResource) Read(ctx context.Context, req resource.ReadReque
 
 	state.Status = types.StringValue(bucket.Status)
 	state.Access = types.StringValue(bucket.Access)
-	// List API doesn't reliably return version_enabled — keep state value
+	// List API doesn't reliably return version_enabled — keep state value if API returns false
 	if bucket.VersionEnabled {
 		state.VersionEnabled = types.BoolValue(true)
+	} else if state.VersionEnabled.IsNull() || state.VersionEnabled.IsUnknown() {
+		state.VersionEnabled = types.BoolValue(false)
 	}
 	if bucket.AccessKey != "" {
 		state.AccessKey = types.StringValue(bucket.AccessKey)
