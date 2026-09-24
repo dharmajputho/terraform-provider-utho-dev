@@ -69,18 +69,22 @@ func (c *Client) CreateBucket(req *BucketCreateRequest) (string, error) {
 }
 
 func (c *Client) GetBucket(dcslug string, name string) (*BucketInstance, error) {
-	respBytes, err := c.Get(fmt.Sprintf("/objectstorage/%s/bucket/%s", dcslug, name))
+	respBytes, err := c.Get(fmt.Sprintf("/objectstorage/%s/bucket", dcslug))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bucket: %w", err)
 	}
-	var bucket BucketInstance
-	if err := json.Unmarshal(respBytes, &bucket); err != nil {
+	var result struct {
+		Buckets []BucketInstance `json:"buckets"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse get bucket response: %w", err)
 	}
-	if bucket.Name == "" {
-		return nil, nil
+	for _, b := range result.Buckets {
+		if b.Name == name {
+			return &b, nil
+		}
 	}
-	return &bucket, nil
+	return nil, nil
 }
 
 func (c *Client) DeleteBucket(dcslug string, name string) error {
