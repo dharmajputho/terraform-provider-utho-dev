@@ -126,7 +126,11 @@ func (r *ObjectStorageResource) Create(ctx context.Context, req resource.CreateR
 	plan.PlanGB = types.Int64Value(int64(bucket.PlanGB))
 	plan.UsedGB = types.StringValue(fmt.Sprintf("%v", bucket.UsedGB))
 	plan.Access = types.StringValue(bucket.Access)
-	plan.VersionEnabled = types.BoolValue(bucket.VersionEnabled)
+	// Don't overwrite version_enabled from API — list API doesn't return it reliably
+	// Keep the value from plan (what user requested)
+	if bucket.VersionEnabled {
+		plan.VersionEnabled = types.BoolValue(true)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
