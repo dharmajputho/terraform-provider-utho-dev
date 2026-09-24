@@ -394,17 +394,31 @@ func (r *ObjectStorageKeyResource) Read(ctx context.Context, req resource.ReadRe
 }
 
 func (r *ObjectStorageKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan ObjectStorageKeyModel
+	var plan, state ObjectStorageKeyModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if !plan.Status.IsNull() {
-		if err := r.client.UpdateAccessKeyStatus(plan.DCSlug.ValueString(), plan.AccessKey.ValueString(), plan.Status.ValueString()); err != nil {
+	// Use access key from state — plan has it as unknown (sensitive computed)
+	accessKey := state.AccessKey.ValueString()
+	if accessKey == "" {
+		accessKey = plan.AccessKey.ValueString()
+	}
+
+	if !plan.Status.IsNull() && plan.Status.ValueString() != state.Status.ValueString() {
+		if err := r.client.UpdateAccessKeyStatus(plan.DCSlug.ValueString(), accessKey, plan.Status.ValueString()); err != nil {
 			resp.Diagnostics.AddError("Error updating access key status", fmt.Sprintf("%s", err))
 			return
 		}
+	}
+
+	// Copy known values from state
+	plan.AccessKey = state.AccessKey
+	plan.SecretKey = state.SecretKey
+	if plan.Status.IsNull() || plan.Status.IsUnknown() {
+		plan.Status = state.Status
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
