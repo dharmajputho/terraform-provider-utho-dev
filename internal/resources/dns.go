@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -199,10 +200,19 @@ func (r *DNSRecordResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	// Find record by ID
+	domain := state.Domain.ValueString()
 	for _, record := range zone.Records {
 		if record.ID == state.ID.ValueString() {
 			state.Type = types.StringValue(record.Type)
-			state.Hostname = types.StringValue(record.Hostname)
+			// API returns hostname with domain appended — strip it
+			hostname := record.Hostname
+			if hostname == domain {
+				hostname = "@"
+			} else {
+				hostname = strings.TrimSuffix(hostname, "."+domain)
+				hostname = strings.TrimSuffix(hostname, domain)
+			}
+			state.Hostname = types.StringValue(hostname)
 			state.Value = types.StringValue(record.Value)
 			state.TTL = types.StringValue(record.TTL)
 			resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
