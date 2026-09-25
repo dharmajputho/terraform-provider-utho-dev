@@ -386,15 +386,18 @@ func (r *ObjectStorageKeyResource) Create(ctx context.Context, req resource.Crea
 	plan.ID = types.StringValue(key.AccessKey)
 	plan.AccessKey = types.StringValue(key.AccessKey)
 	plan.SecretKey = types.StringValue(key.SecretKey)
-	plan.Status = types.StringValue("enable")
 
-	// If user requested disabled status, apply it after creation
-	if !plan.Status.IsNull() && plan.Status.ValueString() == "disable" {
+	// Keys are created as enabled by default
+	// If user requested disabled, apply it now
+	requestedStatus := plan.Status.ValueString()
+	if requestedStatus == "disable" {
 		if err := r.client.UpdateAccessKeyStatus(plan.DCSlug.ValueString(), key.AccessKey, "disable"); err != nil {
 			resp.Diagnostics.AddError("Error disabling access key", fmt.Sprintf("%s", err))
 			return
 		}
 		plan.Status = types.StringValue("disable")
+	} else {
+		plan.Status = types.StringValue("enable")
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
