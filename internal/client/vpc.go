@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -134,11 +135,13 @@ type RouteInstance struct {
 }
 
 type ElasticIPInstance struct {
-	ID           string `json:"id"`
-	IP           string `json:"ip"`
-	IPID         int    `json:"ipid"`
-	DCSlug       string `json:"dcslug"`
-	BillingCycle string `json:"billingcycle"`
+	ID         string `json:"id"`
+	IP         string `json:"ip"`
+	CloudID    string `json:"cloudid"`
+	AssignedAt string `json:"assigned_at"`
+	DCLocation struct {
+		DC string `json:"dc"`
+	} `json:"dclocation"`
 }
 
 type ElasticIPListResponse struct {
@@ -438,26 +441,87 @@ func (c *Client) AllocateElasticIP(req *ElasticIPAllocateRequest) (*ElasticIPIns
 		return nil, fmt.Errorf("allocate elastic IP failed: %s", result["message"])
 	}
 	ip, _ := result["ip"].(string)
-	dcslug, _ := result["dcslug"].(string)
-	billingcycle, _ := result["billingcycle"].(string)
 	return &ElasticIPInstance{
-		IP:           ip,
-		DCSlug:       dcslug,
-		BillingCycle: billingcycle,
+		IP: ip,
 	}, nil
 }
 
-func (c *Client) ReleaseElasticIP(ipID string) error {
-	respBytes, err := c.Delete(fmt.Sprintf("/elasticip/%s", ipID))
+func (c *Client) ReleaseElasticIP(ip string) error {
+	respBytes, err := c.Post(fmt.Sprintf("/elasticip/%s/deallocate", ip), nil)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
 		return fmt.Errorf("failed to release elastic IP: %w", err)
 	}
-	var resp GenericResponse
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
-		return fmt.Errorf("failed to parse release elastic IP response: %w", err)
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
 	}
-	if resp.Status != "success" {
-		return fmt.Errorf("release elastic IP failed: %s", resp.Message)
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+	if result["status"] != "success" {
+		return fmt.Errorf("release elastic IP failed: %s", result["message"])
+	}
+	return nil
+}
+
+func (c *Client) GetElasticIP(ip string) (*ElasticIPInstance, error) {
+	respBytes, err := c.Get("/elasticip")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list elastic IPs: %w", err)
+	}
+	var result ElasticIPListResponse
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse elastic IP list: %w", err)
+	}
+	for _, eip := range result.IPs {
+		if eip.IP == ip {
+			return &eip, nil
+		}
+	}
+	return nil, nil
+}
+
+func (c *Client) AttachElasticIP(cloudID string, ip string) error {
+	respBytes, err := c.Post(fmt.Sprintf("/cloud/%s/elasticip/%s/attach", cloudID, ip), nil)
+	if err != nil {
+		return fmt.Errorf("failed to attach elastic IP: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+	if result["status"] != "" && result["status"] != "success" {
+		return fmt.Errorf("attach elastic IP failed: %s", result["message"])
+	}
+	return nil
+}
+
+func (c *Client) DetachElasticIP(cloudID string, ip string) error {
+	respBytes, err := c.Delete(fmt.Sprintf("/cloud/%s/ip/%s/delete", cloudID, ip))
+	if err != nil {
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return fmt.Errorf("failed to detach elastic IP: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+	if result["status"] != "" && result["status"] != "success" {
+		return fmt.Errorf("detach elastic IP failed: %s", result["message"])
 	}
 	return nil
 }
