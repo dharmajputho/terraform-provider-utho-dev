@@ -296,6 +296,47 @@ func (c *Client) DetachNATGateway(natGatewayID string, subnetID string) error {
 	return nil
 }
 
+func (c *Client) GetNATGateway(id string) (*NATGatewayInstance, error) {
+	respBytes, err := c.Get("/vpc/natgateway")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list NAT gateways: %w", err)
+	}
+	var result struct {
+		NATGateways []NATGatewayInstance `json:"natgateways"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse NAT gateway list: %w", err)
+	}
+	for _, gw := range result.NATGateways {
+		if gw.ID == id {
+			return &gw, nil
+		}
+	}
+	return nil, nil
+}
+
+func (c *Client) AttachNATGateway(natGatewayID string, subnetID string) error {
+	type attachReq struct {
+		Subnet string `json:"subnet"`
+	}
+	respBytes, err := c.Post(fmt.Sprintf("/vpc/natgateway/%s/attach", natGatewayID), &attachReq{Subnet: subnetID})
+	if err != nil {
+		return fmt.Errorf("failed to attach NAT gateway: %w", err)
+	}
+	trimmed := strings.TrimSpace(string(respBytes))
+	if trimmed == "" || trimmed == "null" {
+		return nil
+	}
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+	if result["status"] != "success" {
+		return fmt.Errorf("attach NAT gateway failed: %s", result["message"])
+	}
+	return nil
+}
+
 func (c *Client) DeleteNATGateway(natGatewayID string) error {
 	respBytes, err := c.Delete(fmt.Sprintf("/vpc/natgateway/%s", natGatewayID))
 	if err != nil {
