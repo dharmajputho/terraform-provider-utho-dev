@@ -301,13 +301,20 @@ func (c *Client) GetNATGateway(id string) (*NATGatewayInstance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list NAT gateways: %w", err)
 	}
+	// API returns {"status":"success","data":[...]}
 	var result struct {
+		Data []NATGatewayInstance `json:"data"`
+		// fallback key
 		NATGateways []NATGatewayInstance `json:"natgateways"`
 	}
 	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse NAT gateway list: %w", err)
 	}
-	for _, gw := range result.NATGateways {
+	gateways := result.Data
+	if len(gateways) == 0 {
+		gateways = result.NATGateways
+	}
+	for _, gw := range gateways {
 		if gw.ID == id {
 			return &gw, nil
 		}
