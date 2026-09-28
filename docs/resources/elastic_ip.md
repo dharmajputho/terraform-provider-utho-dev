@@ -1,21 +1,17 @@
 ---
 page_title: "Elastic IP - Utho"
-subcategory: "Networking / VPC"
+subcategory: "Networking / Elastic IP"
 description: |-
   Allocate and manage Elastic IPs on Utho Cloud.
 ---
 
 # utho_elastic_ip
 
-Allocates and manages an Elastic IP address on Utho Cloud. An Elastic IP
-is a static public IP that persists independently of any specific cloud
-instance. Use it with NAT Gateways or assign it to instances directly.
-
-Destroying this resource releases the Elastic IP back to Utho.
+Allocates and manages a static public IP address (Elastic IP) on Utho Cloud. Unlike instance IPs that change when an instance is destroyed and recreated, an Elastic IP is permanent — you keep it until you explicitly release it. Attach it to any cloud instance and move it between instances without changing your DNS records.
 
 ## Example Usage
 
-### Allocate an Elastic IP
+### Allocate an unattached Elastic IP
 
 ```hcl
 resource "utho_elastic_ip" "main" {
@@ -23,39 +19,57 @@ resource "utho_elastic_ip" "main" {
   billingcycle = "monthly"
 }
 
-output "elastic_ip" {
-  value       = utho_elastic_ip.main.ip
-  description = "Allocated elastic IP address"
+output "static_ip" { value = utho_elastic_ip.main.ip }
+```
+
+### Allocate and attach to a cloud instance
+
+```hcl
+resource "utho_cloud" "web" {
+  hostname        = "web-server.mhc"
+  dcslug          = "inmumbaizone2"
+  planid          = "10308"
+  billingcycle    = "hourly"
+  image           = "ubuntu-22.04-x86_64"
+  enable_publicip = "true"
+  auth            = "option2"
+  sshkeys         = utho_ssh_key.deploy.id
+}
+
+resource "utho_elastic_ip" "web" {
+  dcslug       = "inmumbaizone2"
+  billingcycle = "monthly"
+  cloud_id     = utho_cloud.web.id
+}
+
+output "static_ip"   { value = utho_elastic_ip.web.ip }
+output "instance_ip" { value = utho_cloud.web.ip }
+```
+
+### Move Elastic IP between instances
+
+Change `cloud_id` to move the IP to a different instance — updates in place without reallocating the IP.
+
+```hcl
+# Change cloud_id from old instance to new instance
+resource "utho_elastic_ip" "web" {
+  dcslug       = "inmumbaizone2"
+  billingcycle = "monthly"
+  cloud_id     = utho_cloud.web_v2.id  # ← change this and apply
 }
 ```
 
-### Use with a NAT Gateway
+### Zero-downtime deployment pattern
 
 ```hcl
-resource "utho_elastic_ip" "nat_ip" {
+# 1. Keep the elastic IP pointing to v1 while deploying v2
+resource "utho_cloud" "web_v1" { ... }
+resource "utho_cloud" "web_v2" { ... }
+
+resource "utho_elastic_ip" "web" {
   dcslug       = "inmumbaizone2"
   billingcycle = "monthly"
-}
-
-resource "utho_nat_gateway" "main" {
-  name      = "main-nat"
-  subnet_id = utho_subnet.public.id
-  public_ip = utho_elastic_ip.nat_ip.ip
-  dcslug    = "inmumbaizone2"
-}
-```
-
-### Multiple Elastic IPs
-
-```hcl
-resource "utho_elastic_ip" "ips" {
-  count        = 3
-  dcslug       = "inmumbaizone2"
-  billingcycle = "monthly"
-}
-
-output "ip_addresses" {
-  value = utho_elastic_ip.ips[*].ip
+  cloud_id     = utho_cloud.web_v1.id  # switch to web_v2.id when ready
 }
 ```
 
@@ -63,19 +77,24 @@ output "ip_addresses" {
 
 | Argument       | Type   | Required | Description |
 |----------------|--------|----------|-------------|
-| `dcslug`       | String | Yes      | Data center slug where the IP is allocated. Changing this forces a new resource. |
-| `billingcycle` | String | Yes      | Billing cycle. Accepted values: `monthly`, `hourly`. Changing this forces a new resource. |
+| `dcslug`       | String | Yes      | Data center slug. Changing this forces a new resource. |
+| `billingcycle` | String | Yes      | Billing cycle: `monthly` or `hourly`. Changing this forces a new resource. |
+| `cloud_id`     | String | No       | Cloud instance ID to attach this IP to. Leave empty to keep unattached. Can be updated in place. |
 
 ## Attribute Reference
 
-| Attribute | Type   | Description |
-|-----------|--------|-------------|
-| `id`      | String | Elastic IP identifier. |
-| `ip`      | String | Allocated public IP address. |
+| Attribute     | Type   | Description |
+|---------------|--------|-------------|
+| `id`          | String | The Elastic IP address (used as identifier). |
+| `ip`          | String | The allocated static IP address. |
+| `ipid`        | String | Numeric ID of the Elastic IP. |
+| `cloud_id`    | String | ID of the attached cloud instance (`"0"` if unattached). |
+| `assigned_at` | String | Timestamp when the IP was assigned. |
 
 ## Notes
 
-- The IP address is assigned automatically — a specific address cannot be requested.
-- Elastic IPs are billed even when not attached to any resource.
-- Changing `dcslug` or `billingcycle` releases the current IP and allocates a new one.
-- Always detach the Elastic IP from any resource before releasing it.
+- Elastic IPs are billed even when unattached — release them when not in use.
+- One Elastic IP can only be attached to one instance at a time.
+- Changing `cloud_id` detaches from the old instance and attaches to the new one in a single apply.
+- The IP address remains the same when moved between instances — your DNS records don't need to change.
+- Data center must match the instance's data center.
