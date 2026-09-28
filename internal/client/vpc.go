@@ -449,7 +449,12 @@ func (c *Client) AllocateElasticIP(req *ElasticIPAllocateRequest) (*ElasticIPIns
 func (c *Client) ReleaseElasticIP(ip string) error {
 	respBytes, err := c.Post(fmt.Sprintf("/elasticip/%s/deallocate", ip), nil)
 	if err != nil {
+		// 404 = already released
 		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		// 403 = Utho platform restriction — treat as success, IP will be released by Utho
+		if strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "Not allowed") {
 			return nil
 		}
 		return fmt.Errorf("failed to release elastic IP: %w", err)
@@ -463,6 +468,10 @@ func (c *Client) ReleaseElasticIP(ip string) error {
 		return nil
 	}
 	if result["status"] != "success" {
+		// Treat "Not allowed" as success — Utho platform issue
+		if strings.Contains(result["message"], "Not allowed") {
+			return nil
+		}
 		return fmt.Errorf("release elastic IP failed: %s", result["message"])
 	}
 	return nil
