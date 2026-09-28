@@ -105,12 +105,12 @@ type SubnetListResponse struct {
 }
 
 type NATGatewayInstance struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Subnet   string `json:"subnet"`
-	PublicIP string `json:"publicip"`
-	DCSlug   string `json:"dcslug"`
-	Status   string `json:"status"`
+	ID       string      `json:"id"`
+	Name     string      `json:"name"`
+	Subnet   interface{} `json:"subnet"`
+	PublicIP string      `json:"publicip"`
+	DCSlug   string      `json:"dcslug"`
+	Status   string      `json:"status"`
 }
 
 type RouteTableInstance struct {
