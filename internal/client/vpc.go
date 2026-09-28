@@ -296,6 +296,19 @@ func (c *Client) DetachNATGateway(natGatewayID string, subnetID string) error {
 	return nil
 }
 
+func (n *NATGatewayInstance) GetSubnetUUID() string {
+	if n.Subnet == nil {
+		return ""
+	}
+	switch s := n.Subnet.(type) {
+	case map[string]interface{}:
+		if uuid, ok := s["uuid"].(string); ok {
+			return uuid
+		}
+	}
+	return ""
+}
+
 func (c *Client) GetNATGateway(id string) (*NATGatewayInstance, error) {
 	respBytes, err := c.Get("/vpc/natgateway")
 	if err != nil {

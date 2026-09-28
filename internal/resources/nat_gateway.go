@@ -31,13 +31,15 @@ func (r *NATGatewayResource) ImportState(ctx context.Context, req resource.Impor
 		resp.Diagnostics.AddError("Error importing NAT Gateway", fmt.Sprintf("Could not find NAT Gateway with ID %s", req.ID))
 		return
 	}
+	// Extract subnet UUID from subnet object if present
+	subnetID := gw.GetSubnetUUID()
 	state := NATGatewayModel{
 		ID:       types.StringValue(gw.ID),
 		Name:     types.StringValue(gw.Name),
 		PublicIP: types.StringValue(gw.PublicIP),
 		DCSlug:   types.StringValue(gw.DCSlug),
 		Status:   types.StringValue(gw.Status),
-		SubnetID: types.StringValue(""),
+		SubnetID: types.StringValue(subnetID),
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
