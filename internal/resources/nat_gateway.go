@@ -25,6 +25,23 @@ type NATGatewayModel struct {
 
 func NewNATGatewayResource() resource.Resource { return &NATGatewayResource{} }
 
+func (r *NATGatewayResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	gw, err := r.client.GetNATGateway(req.ID)
+	if err != nil || gw == nil {
+		resp.Diagnostics.AddError("Error importing NAT Gateway", fmt.Sprintf("Could not find NAT Gateway with ID %s", req.ID))
+		return
+	}
+	state := NATGatewayModel{
+		ID:       types.StringValue(gw.ID),
+		Name:     types.StringValue(gw.Name),
+		PublicIP: types.StringValue(gw.PublicIP),
+		DCSlug:   types.StringValue(gw.DCSlug),
+		Status:   types.StringValue(gw.Status),
+		SubnetID: types.StringValue(""),
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 func (r *NATGatewayResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_nat_gateway"
 }
