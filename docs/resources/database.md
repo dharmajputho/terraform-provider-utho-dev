@@ -1,184 +1,159 @@
 ---
-page_title: "Managed Database - Utho"
-subcategory: "Database"
+page_title: "Database Cluster - Utho"
+subcategory: "Database / DBaaS"
 description: |-
-  Create and manage Utho Managed PostgreSQL database clusters.
+  Create and manage Utho managed database clusters.
 ---
 
 # utho_database
 
-Creates and manages a Utho Managed Database cluster. Utho handles provisioning, OS patching, automated backups, and high availability — you get a connection string and start using it.
+Creates and manages a fully managed database cluster on Utho. Supports MySQL, PostgreSQL, and MariaDB. Utho handles provisioning, backups, failover, and maintenance. You connect using standard database clients with the provided connection strings.
 
-Currently supports PostgreSQL (`pg`). After creating a cluster, add databases with `utho_database_db`, users with `utho_database_user`, and connection pools with `utho_database_pool`.
+~> **Note:** Database clusters take 4-10 minutes to provision. Terraform polls until the cluster is Active and all connection strings are available.
 
 ## Example Usage
 
-### Minimal PostgreSQL cluster
-
-The quickest way to get a managed database. Utho generates a default admin user and password.
+### MySQL cluster
 
 ```hcl
-resource "utho_database" "pg" {
-  cluster_name = "my-app-db"
-  dcslug       = "inmumbaizone2"
-  engine       = "pg"
-  version      = "17"
-  size         = "10157"
-  network_type = "public"
-  billing      = "monthly"
+resource "utho_database" "mysql" {
+  cluster_name  = "production-mysql"
+  dcslug        = "inmumbaizone2"
+  engine        = "mysql"
+  version       = "8.0"
+  size          = "10151"
+  network_type  = "public"
+  billing       = "hourly"
+  replica_count = "0"
 }
 
-# Connection string output for your application
-output "db_connection" {
-  value     = "postgres://${utho_database.pg.default_user}:PASSWORD@public-primary-pg-inmumbaizone2-${utho_database.pg.id}.db.onutho.com:5432/"
-  sensitive = false
-}
-output "db_password" {
-  value     = utho_database.pg.default_pass
+output "mysql_host" { value = utho_database.mysql.host }
+output "mysql_port" { value = utho_database.mysql.port }
+output "mysql_user" { value = utho_database.mysql.default_user }
+output "mysql_uri" {
+  value     = utho_database.mysql.uri
   sensitive = true
 }
 ```
 
-### Production cluster with HA replica and PITR
-
-For production: one primary + one replica for high availability, point-in-time recovery enabled for data protection.
+### PostgreSQL cluster
 
 ```hcl
-resource "utho_database" "prod" {
+resource "utho_database" "postgres" {
+  cluster_name  = "production-postgres"
+  dcslug        = "inmumbaizone2"
+  engine        = "pg"
+  version       = "17"
+  size          = "10151"
+  network_type  = "public"
+  billing       = "hourly"
+  replica_count = "0"
+  pitr_enabled  = "1"
+}
+```
+
+### MariaDB cluster
+
+```hcl
+resource "utho_database" "mariadb" {
+  cluster_name  = "production-mariadb"
+  dcslug        = "inmumbaizone2"
+  engine        = "mariadb"
+  version       = "10.11"
+  size          = "10151"
+  network_type  = "public"
+  billing       = "hourly"
+  replica_count = "0"
+}
+```
+
+### Cluster with security group
+
+```hcl
+resource "utho_database" "secured" {
   cluster_name  = "production-db"
   dcslug        = "inmumbaizone2"
-  engine        = "pg"
-  version       = "17"
-  size          = "10157"
+  engine        = "mysql"
+  version       = "8.0"
+  size          = "10151"
   network_type  = "public"
-  billing       = "monthly"
-  pitr_enabled  = "1"    # point-in-time recovery
-  replica_count = "1"    # one standby replica
-}
-```
-
-### Private cluster inside a VPC with security group
-
-For maximum security — no public endpoint, only accessible from within your VPC. Combined with a security group that only allows your app servers.
-
-```hcl
-resource "utho_firewall" "db" { name = "db-sg" }
-
-resource "utho_firewall_rule" "postgres" {
-  firewall_id  = utho_firewall.db.id
-  type         = "incoming"
-  service      = "CUSTOM"
-  protocol     = "tcp"
-  port         = "5432"
-  port_range   = "5432"
-  addresses    = "10.0.0.0/8"
-  source_range = "10.0.0.0/8"
-}
-
-resource "utho_database" "private" {
-  cluster_name  = "private-db"
-  dcslug        = "inmumbaizone2"
-  engine        = "pg"
-  version       = "17"
-  size          = "10157"
-  network_type  = "private"
-  billing       = "monthly"
-  vpc           = utho_subnet.private.id
   firewall      = utho_firewall.db.id
-  pitr_enabled  = "1"
-  replica_count = "1"
+  billing       = "hourly"
+  replica_count = "0"
 }
 ```
 
-### Full database setup — cluster, database, user, and pool
+### Use connection string in app server
 
 ```hcl
 resource "utho_database" "main" {
-  cluster_name = "app-db"
-  dcslug       = "inmumbaizone2"
-  engine       = "pg"
-  version      = "17"
-  size         = "10157"
-  network_type = "public"
-  billing      = "monthly"
+  cluster_name  = "app-db"
+  dcslug        = "inmumbaizone2"
+  engine        = "mysql"
+  version       = "8.0"
+  size          = "10151"
+  network_type  = "public"
+  billing       = "hourly"
+  replica_count = "0"
 }
 
-resource "utho_database_db" "app" {
-  cluster_id = utho_database.main.id
-  name       = "appdb"
+resource "utho_cloud" "app" {
+  hostname = "app-server.mhc"
+  dcslug   = "inmumbaizone2"
+  # ...
 }
 
-resource "utho_database_user" "app" {
-  cluster_id = utho_database.main.id
-  name       = "appuser"
-}
-
-resource "utho_database_pool" "app" {
-  cluster_id = utho_database.main.id
-  cloud_id   = utho_database.main.cloud_id
-  name       = "app-pool"
-  db         = utho_database_db.app.name
-  user       = utho_database_user.app.name
-  mode       = "transaction"
-  size       = 25
-}
-
-output "connection_string" {
-  value     = "postgres://${utho_database_user.app.name}:PASSWORD@public-primary-pg-inmumbaizone2-${utho_database.main.id}.db.onutho.com:5432/${utho_database_db.app.name}"
-  sensitive = false
+output "connect_cmd" {
+  value = "mysql -h ${utho_database.main.host} -P ${utho_database.main.port} -u ${utho_database.main.default_user} -p"
 }
 ```
 
 ## Argument Reference
 
-### Required
-
-| Argument       | Type   | Description |
-|----------------|--------|-------------|
-| `cluster_name` | String | Cluster label. Changing this forces a new resource. |
-| `dcslug`       | String | Data center. Changing this forces a new resource. |
-| `engine`       | String | Database engine: `pg` (PostgreSQL). Changing this forces a new resource. |
-| `version`      | String | Engine version (e.g. `17` for PostgreSQL 17). Changing this forces a new resource. |
-| `size`         | String | Plan ID for node size (CPU/RAM/disk). |
-| `network_type` | String | `public` or `private`. Changing this forces a new resource. |
-| `billing`      | String | `monthly` or `hourly`. |
-
-### Optional
-
-| Argument        | Type   | Description |
-|-----------------|--------|-------------|
-| `pitr_enabled`  | String | Enable point-in-time recovery: `"1"` or `"0"`. Recommended for production. |
-| `replica_count` | String | Number of standby replica nodes. Use `"1"` for high availability. |
-| `vpc`           | String | VPC subnet ID. Required when `network_type = "private"`. Changing this forces a new resource. |
-| `firewall`      | String | Security group ID to attach. |
+| Argument        | Type   | Required | Description |
+|-----------------|--------|----------|-------------|
+| `cluster_name`  | String | Yes      | Unique cluster name. Changing this forces a new resource. |
+| `dcslug`        | String | Yes      | Data center slug. Changing this forces a new resource. |
+| `engine`        | String | Yes      | Database engine: `mysql`, `pg`, `mariadb`. Changing this forces a new resource. |
+| `version`       | String | Yes      | Engine version (e.g. `8.0`, `17`, `10.11`). Changing this forces a new resource. |
+| `size`          | String | Yes      | Plan ID. Use `data.utho_database_plans` to list available plans. |
+| `network_type`  | String | Yes      | `public` or `private`. Changing this forces a new resource. |
+| `billing`       | String | Yes      | Billing cycle: `hourly` or `monthly`. |
+| `replica_count` | String | Yes      | Number of replica nodes. Use `"0"` for standalone. |
+| `firewall`      | String | No       | Security group ID to restrict access. |
+| `vpc`           | String | No       | VPC subnet ID for private network clusters. |
+| `pitr_enabled`  | String | No       | Enable point-in-time recovery: `"1"` or `"0"`. |
 
 ## Attribute Reference
 
-| Attribute        | Type   | Description |
-|------------------|--------|-------------|
-| `id`             | String | Unique cluster ID. |
-| `cloud_id`       | String | Primary node cloud ID. Required by `utho_database_pool`. |
-| `status`         | String | Cluster status (`Active`, `Pending`). |
-| `default_user`   | String | Auto-created admin username (always `dbadmin`). |
-| `default_pass`   | String | Auto-generated admin password. **Sensitive.** Save this immediately. |
-| `default_dbname` | String | Default database name. |
-| `port`           | String | Database port (`5432` for PostgreSQL). |
-| `created_at`     | String | Creation timestamp. |
+| Attribute       | Type   | Description |
+|-----------------|--------|-------------|
+| `id`            | String | Cluster ID. |
+| `cloud_id`      | String | Primary node cloud ID. |
+| `status`        | String | Cluster status (`Active`, `Pending`). |
+| `default_user`  | String | Default admin username. |
+| `default_pass`  | String | Default admin password. **Sensitive.** |
+| `default_dbname`| String | Default database name. |
+| `port`          | String | Database port. |
+| `host`          | String | Public connection hostname. |
+| `host_private`  | String | Private connection hostname. |
+| `uri`           | String | Public connection URI. **Sensitive.** |
+| `uri_private`   | String | Private connection URI. **Sensitive.** |
+| `created_at`    | String | Creation timestamp. |
 
-## Connection String Format
+## Supported Engines and Versions
 
-```
-postgres://{default_user}:{default_pass}@public-primary-pg-{dcslug}-{id}-{cloud_id}.db.onutho.com:5432/{default_dbname}
-```
+| Engine    | `engine` value | Versions |
+|-----------|---------------|---------|
+| MySQL     | `mysql`       | `8.0` |
+| PostgreSQL| `pg`          | `16`, `17` |
+| MariaDB   | `mariadb`     | `10.11` |
 
-Example:
-```
-postgres://dbadmin:mypassword@public-primary-pg-inmumbaizone2-189842-1666717.db.onutho.com:5432/defaultdb
-```
+## Related Resources
 
-## Notes
-
-- Database clusters take 5–10 minutes to provision.
-- The `default_pass` is shown in Terraform state. Encrypt your state file or use a remote backend with encryption at rest.
-- For production, always enable `pitr_enabled = "1"` and `replica_count = "1"`.
-- Use connection pooling (`utho_database_pool`) with PgBouncer to reduce connection overhead in high-traffic apps.
+| Resource | Purpose |
+|----------|---------|
+| [utho_database_db](database_db) | Create databases inside the cluster |
+| [utho_database_user](database_user) | Create database users |
+| [utho_database_pool](database_pool) | Create connection pools |
+| [data.utho_database_plans](../data-sources/database_plans) | List available plans |

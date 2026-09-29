@@ -1,38 +1,24 @@
 ---
 page_title: "Database User - Utho"
-subcategory: "Database"
+subcategory: "Database / DBaaS"
 description: |-
-  Create and manage users in a Utho database cluster.
+  Create and manage users inside a Utho database cluster.
 ---
 
 # utho_database_user
 
-Creates a user in a Utho Managed Database cluster. A strong password is auto-generated if not provided — save it immediately as it cannot be retrieved later.
+Creates a database user inside an existing Utho database cluster.
 
 ## Example Usage
 
-### Create a user with auto-generated password
-
 ```hcl
 resource "utho_database_user" "app" {
-  cluster_id = utho_database.postgres.id
-  name       = "appuser"
-}
-
-output "db_password" {
-  value     = utho_database_user.app.generated_password
-  sensitive = true
-}
-```
-
-### Create a user with a specific password
-
-```hcl
-resource "utho_database_user" "app" {
-  cluster_id = utho_database.postgres.id
+  cluster_id = utho_database.main.id
   name       = "appuser"
   password   = var.db_password
 }
+
+output "db_username" { value = utho_database_user.app.name }
 ```
 
 ## Argument Reference
@@ -41,13 +27,11 @@ resource "utho_database_user" "app" {
 |--------------|--------|----------|-------------|
 | `cluster_id` | String | Yes      | Database cluster ID. Changing this forces a new resource. |
 | `name`       | String | Yes      | Username. Changing this forces a new resource. |
-| `password`   | String | No       | Password. Leave empty to auto-generate. **Sensitive.** Changing this forces a new resource. |
+| `password`   | String | Yes      | User password. **Sensitive.** |
 
 ## Attribute Reference
 
 | Attribute            | Type   | Description |
 |----------------------|--------|-------------|
 | `id`                 | String | Identifier in the format `{cluster_id}:{name}`. |
-| `generated_password` | String | Auto-generated password. **Sensitive — shown only at creation time.** |
-
-~> **Important:** Save `generated_password` immediately after creation. It cannot be retrieved later. Mark the output as `sensitive = true`.
+| `generated_password` | String | Generated password if none provided. **Sensitive.** |
