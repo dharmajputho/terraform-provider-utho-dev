@@ -143,5 +143,7 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		datasources.NewVPCSubnetsDataSource,
 		datasources.NewBillingCyclesDataSource,
 		datasources.NewDatabasePlansDataSource, // data.utho_database_plans
+		datasources.NewAutoScalingsDataSource,  // data.utho_autoscalings
+		datasources.NewTargetGroupsDataSource,  // data.utho_target_groups
 	}
 }
