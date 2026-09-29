@@ -122,7 +122,17 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	plan.Status = types.StringValue("Pending")
 	plan.CreatedAt = types.StringValue("")
 
-	// Fetch cloud_id and credentials from list API
+	// Wait for cluster to be Active (takes 5-10 minutes)
+	if waitErr := r.client.WaitForDatabaseReady(id); waitErr != nil {
+		if waitErr.Error() == "STILL_PROVISIONING" {
+			msg := fmt.Sprintf("Cluster %q (ID: %s) was created successfully but has not become Active within 10 minutes. This is normal for larger plans or busy data centers. The cluster ID has been saved to state. Once provisioning completes in the Utho Console, run: terraform apply — Terraform will detect the cluster is now Active and continue.", plan.ClusterName.ValueString(), id)
+			resp.Diagnostics.AddWarning("Database cluster still provisioning", msg)
+		} else {
+			resp.Diagnostics.AddWarning("Database cluster warning", fmt.Sprintf("%s", waitErr))
+		}
+	}
+
+	// Fetch cloud_id, credentials and connection strings from list API
 	db, err := r.client.GetDatabase(id, "")
 	if err == nil && db != nil {
 		plan.CloudID = types.StringValue(db.GetCloudID())
@@ -132,6 +142,10 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		plan.Port = types.StringValue(db.Port)
 		plan.Status = types.StringValue(db.Status)
 		plan.CreatedAt = types.StringValue(db.CreatedAt)
+		plan.Host = types.StringValue(db.GetHost())
+		plan.HostPrivate = types.StringValue(db.GetHostPrivate())
+		plan.URI = types.StringValue(db.GetURI())
+		plan.URIPrivate = types.StringValue(db.GetURIPrivate())
 	} else {
 		plan.CloudID = types.StringValue("")
 		plan.DefaultUser = types.StringValue("")

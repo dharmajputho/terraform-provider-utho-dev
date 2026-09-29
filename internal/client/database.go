@@ -176,6 +176,8 @@ type DatabaseUserResponse struct {
 
 // ── Cluster methods ───────────────────────────────────────────────────────
 
+var ErrDatabaseStillProvisioning = fmt.Errorf("STILL_PROVISIONING")
+
 func (c *Client) WaitForDatabaseReady(clusterID string) error {
 	for attempt := 0; attempt < 60; attempt++ {
 		if attempt > 0 {
@@ -193,10 +195,10 @@ func (c *Client) WaitForDatabaseReady(clusterID string) error {
 			return nil
 		}
 		if status == "failed" || status == "error" {
-			return fmt.Errorf("database cluster entered failed state")
+			return fmt.Errorf("database cluster entered a failed state — check the Utho Console")
 		}
 	}
-	return nil // proceed after timeout
+	return ErrDatabaseStillProvisioning
 }
 
 func (c *Client) CreateDatabase(req *DatabaseCreateRequest) (string, error) {
