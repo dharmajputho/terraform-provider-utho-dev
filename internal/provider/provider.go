@@ -142,5 +142,6 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		datasources.NewSSHKeysDataSource,
 		datasources.NewVPCSubnetsDataSource,
 		datasources.NewBillingCyclesDataSource,
+		datasources.NewDatabasePlansDataSource, // data.utho_database_plans
 	}
 }

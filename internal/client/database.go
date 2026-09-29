@@ -78,21 +78,38 @@ type DatabaseTrustedHostRequest struct {
 
 // ── Response structs ──────────────────────────────────────────────────────
 
+type DatabaseNode struct {
+	CloudID string `json:"cloudid"`
+}
+
+type DatabaseNodes struct {
+	Primary []DatabaseNode `json:"primary"`
+}
+
 type DatabaseInstance struct {
-	ID              string `json:"id"`
-	ClusterName     string `json:"cluster_name"`
-	Engine          string `json:"engine"`
-	Version         string `json:"version"`
-	Port            string `json:"port"`
-	DCSlug          string `json:"dcslug"`
-	Status          string `json:"status"`
-	CreatedAt       string `json:"created_at"`
-	DefaultUser     string `json:"dbdefault_user"`
-	DefaultPass     string `json:"dbdefault_pass"`
-	DefaultDBName   string `json:"dbdefault_dbname"`
-	IsSSL           string `json:"is_ssl"`
-	PITREnabled     string `json:"pitr_enabled"`
-	AutomatedBackup string `json:"automated_backup"`
+	ID              string        `json:"id"`
+	ClusterName     string        `json:"cluster_name"`
+	Engine          string        `json:"engine"`
+	Version         string        `json:"version"`
+	Port            string        `json:"port"`
+	DCSlug          string        `json:"dcslug"`
+	Status          string        `json:"status"`
+	CreatedAt       string        `json:"created_at"`
+	DefaultUser     string        `json:"dbdefault_user"`
+	DefaultPass     string        `json:"dbdefault_pass"`
+	DefaultDBName   string        `json:"dbdefault_dbname"`
+	IsSSL           string        `json:"is_ssl"`
+	PITREnabled     string        `json:"pitr_enabled"`
+	AutomatedBackup string        `json:"automated_backup"`
+	Nodes           DatabaseNodes `json:"nodes"`
+}
+
+// GetCloudID returns the primary node cloud ID
+func (d *DatabaseInstance) GetCloudID() string {
+	if len(d.Nodes.Primary) > 0 {
+		return d.Nodes.Primary[0].CloudID
+	}
+	return ""
 }
 
 type DatabaseListResponse struct {
@@ -131,22 +148,25 @@ func (c *Client) CreateDatabase(req *DatabaseCreateRequest) (string, error) {
 }
 
 func (c *Client) GetDatabase(clusterID string, cloudID string) (*DatabaseInstance, error) {
-	respBytes, err := c.Get(fmt.Sprintf("/databases/%s/%s", clusterID, cloudID))
+	// Use list API to find cluster by ID
+	respBytes, err := c.Get("/databases")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database: %w", err)
+		return nil, fmt.Errorf("failed to list databases: %w", err)
 	}
-	var resp DatabaseDetailResponse
+	var resp DatabaseListResponse
 	if err := json.Unmarshal(respBytes, &resp); err != nil {
-		return nil, fmt.Errorf("failed to parse get database response: %w", err)
+		return nil, fmt.Errorf("failed to parse database list response: %w", err)
 	}
-	if len(resp.Databases) == 0 {
-		return nil, nil
+	for _, db := range resp.Databases {
+		if db.ID == clusterID {
+			return &db, nil
+		}
 	}
-	return &resp.Databases[0], nil
+	return nil, nil
 }
 
 func (c *Client) DeleteDatabase(clusterID string, cloudID string, clusterName string) error {
-	endpoint := fmt.Sprintf("/databases/%s/replica/%s?confirm=%s", clusterID, cloudID, clusterName)
+	endpoint := fmt.Sprintf("/databases/%s/%s?confirm=%s", clusterID, cloudID, clusterName)
 	respBytes, err := c.Delete(endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to delete database cluster: %w", err)

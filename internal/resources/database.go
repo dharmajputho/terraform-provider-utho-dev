@@ -111,13 +111,26 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	plan.ID = types.StringValue(id)
-	plan.CloudID = types.StringValue("")
 	plan.Status = types.StringValue("Pending")
-	plan.DefaultUser = types.StringValue("")
-	plan.DefaultPass = types.StringValue("")
-	plan.DefaultDBName = types.StringValue("")
-	plan.Port = types.StringValue("5432")
 	plan.CreatedAt = types.StringValue("")
+
+	// Fetch cloud_id and credentials from list API
+	db, err := r.client.GetDatabase(id, "")
+	if err == nil && db != nil {
+		plan.CloudID = types.StringValue(db.GetCloudID())
+		plan.DefaultUser = types.StringValue(db.DefaultUser)
+		plan.DefaultPass = types.StringValue(db.DefaultPass)
+		plan.DefaultDBName = types.StringValue(db.DefaultDBName)
+		plan.Port = types.StringValue(db.Port)
+		plan.Status = types.StringValue(db.Status)
+		plan.CreatedAt = types.StringValue(db.CreatedAt)
+	} else {
+		plan.CloudID = types.StringValue("")
+		plan.DefaultUser = types.StringValue("")
+		plan.DefaultPass = types.StringValue("")
+		plan.DefaultDBName = types.StringValue("")
+		plan.Port = types.StringValue("")
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -125,10 +138,6 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	var state DatabaseModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if state.CloudID.ValueString() == "" {
 		return
 	}
 
