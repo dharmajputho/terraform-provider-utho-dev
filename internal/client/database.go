@@ -80,8 +80,19 @@ type DatabaseTrustedHostRequest struct {
 
 // ── Response structs ──────────────────────────────────────────────────────
 
+type DatabaseConnectionStrings struct {
+	URI         string `json:"uri"`
+	URIPrivate  string `json:"uri_private"`
+	Host        string `json:"host"`
+	HostPrivate string `json:"host_private"`
+	Port        string `json:"port"`
+	User        string `json:"user"`
+	Database    string `json:"database"`
+}
+
 type DatabaseNode struct {
-	CloudID string `json:"cloudid"`
+	CloudID           string                    `json:"cloudid"`
+	ConnectionStrings DatabaseConnectionStrings `json:"connection_strings"`
 }
 
 type DatabaseNodes struct {
@@ -110,6 +121,38 @@ type DatabaseInstance struct {
 func (d *DatabaseInstance) GetCloudID() string {
 	if len(d.Nodes.Primary) > 0 {
 		return d.Nodes.Primary[0].CloudID
+	}
+	return ""
+}
+
+// GetHost returns the public connection host
+func (d *DatabaseInstance) GetHost() string {
+	if len(d.Nodes.Primary) > 0 {
+		return d.Nodes.Primary[0].ConnectionStrings.Host
+	}
+	return ""
+}
+
+// GetHostPrivate returns the private connection host
+func (d *DatabaseInstance) GetHostPrivate() string {
+	if len(d.Nodes.Primary) > 0 {
+		return d.Nodes.Primary[0].ConnectionStrings.HostPrivate
+	}
+	return ""
+}
+
+// GetURI returns the public connection URI
+func (d *DatabaseInstance) GetURI() string {
+	if len(d.Nodes.Primary) > 0 {
+		return d.Nodes.Primary[0].ConnectionStrings.URI
+	}
+	return ""
+}
+
+// GetURIPrivate returns the private connection URI
+func (d *DatabaseInstance) GetURIPrivate() string {
+	if len(d.Nodes.Primary) > 0 {
+		return d.Nodes.Primary[0].ConnectionStrings.URIPrivate
 	}
 	return ""
 }

@@ -38,6 +38,10 @@ type DatabaseModel struct {
 	DefaultDBName types.String `tfsdk:"default_dbname"`
 	Port          types.String `tfsdk:"port"`
 	CreatedAt     types.String `tfsdk:"created_at"`
+	Host          types.String `tfsdk:"host"`
+	HostPrivate   types.String `tfsdk:"host_private"`
+	URI           types.String `tfsdk:"uri"`
+	URIPrivate    types.String `tfsdk:"uri_private"`
 }
 
 func NewDatabaseResource() resource.Resource { return &DatabaseResource{} }
@@ -58,6 +62,10 @@ func (r *DatabaseResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"default_dbname": schema.StringAttribute{Computed: true, Description: "Default database name."},
 			"port":           schema.StringAttribute{Computed: true, Description: "Database port."},
 			"created_at":     schema.StringAttribute{Computed: true, Description: "Cluster creation timestamp."},
+			"host":           schema.StringAttribute{Computed: true, Description: "Public connection hostname.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"host_private":   schema.StringAttribute{Computed: true, Description: "Private connection hostname.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"uri":            schema.StringAttribute{Computed: true, Sensitive: true, Description: "Public connection URI.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"uri_private":    schema.StringAttribute{Computed: true, Sensitive: true, Description: "Private connection URI.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
 			"cluster_name":   schema.StringAttribute{Required: true, Description: "Cluster label/name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"dcslug":         schema.StringAttribute{Required: true, Description: "Data center slug.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"engine":         schema.StringAttribute{Required: true, Description: "Database engine. Use pg for PostgreSQL.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
@@ -130,6 +138,10 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		plan.DefaultPass = types.StringValue("")
 		plan.DefaultDBName = types.StringValue("")
 		plan.Port = types.StringValue("")
+		plan.Host = types.StringValue("")
+		plan.HostPrivate = types.StringValue("")
+		plan.URI = types.StringValue("")
+		plan.URIPrivate = types.StringValue("")
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -157,9 +169,21 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.DefaultDBName = types.StringValue(db.DefaultDBName)
 	state.Port = types.StringValue(db.Port)
 	state.CreatedAt = types.StringValue(db.CreatedAt)
-	// Update cloud_id from nodes if available
+	// Update cloud_id and connection strings from nodes if available
 	if cloudID := db.GetCloudID(); cloudID != "" {
 		state.CloudID = types.StringValue(cloudID)
+	}
+	if h := db.GetHost(); h != "" {
+		state.Host = types.StringValue(h)
+	}
+	if h := db.GetHostPrivate(); h != "" {
+		state.HostPrivate = types.StringValue(h)
+	}
+	if u := db.GetURI(); u != "" {
+		state.URI = types.StringValue(u)
+	}
+	if u := db.GetURIPrivate(); u != "" {
+		state.URIPrivate = types.StringValue(u)
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
