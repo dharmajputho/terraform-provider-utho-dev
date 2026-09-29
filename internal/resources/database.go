@@ -240,6 +240,11 @@ func (r *DatabaseDBResource) Create(ctx context.Context, req resource.CreateRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// Wait for cluster to be ready before adding database
+	if err := r.client.WaitForDatabaseReady(plan.ClusterID.ValueString()); err != nil {
+		resp.Diagnostics.AddError("Error waiting for database cluster", fmt.Sprintf("%s", err))
+		return
+	}
 	if err := r.client.CreateDBDatabase(plan.ClusterID.ValueString(), plan.Name.ValueString()); err != nil {
 		resp.Diagnostics.AddError("Error creating database", fmt.Sprintf("%s", err))
 		return

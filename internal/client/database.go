@@ -3,6 +3,8 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -130,6 +132,29 @@ type DatabaseUserResponse struct {
 }
 
 // ── Cluster methods ───────────────────────────────────────────────────────
+
+func (c *Client) WaitForDatabaseReady(clusterID string) error {
+	for attempt := 0; attempt < 60; attempt++ {
+		if attempt > 0 {
+			time.Sleep(10 * time.Second)
+		}
+		db, err := c.GetDatabase(clusterID, "")
+		if err != nil {
+			continue
+		}
+		if db == nil {
+			continue
+		}
+		status := strings.ToLower(db.Status)
+		if status == "active" || status == "running" {
+			return nil
+		}
+		if status == "failed" || status == "error" {
+			return fmt.Errorf("database cluster entered failed state")
+		}
+	}
+	return nil // proceed after timeout
+}
 
 func (c *Client) CreateDatabase(req *DatabaseCreateRequest) (string, error) {
 	respBytes, err := c.Post("/databases", req)
