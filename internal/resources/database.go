@@ -157,6 +157,10 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	state.DefaultDBName = types.StringValue(db.DefaultDBName)
 	state.Port = types.StringValue(db.Port)
 	state.CreatedAt = types.StringValue(db.CreatedAt)
+	// Update cloud_id from nodes if available
+	if cloudID := db.GetCloudID(); cloudID != "" {
+		state.CloudID = types.StringValue(cloudID)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
