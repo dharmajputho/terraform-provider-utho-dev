@@ -3,6 +3,8 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -54,6 +56,18 @@ type AutoScalingCreateRequest struct {
 	CPUModel           string                `json:"cpumodel,omitempty"`
 	Policies           []AutoScalingPolicy   `json:"policies,omitempty"`
 	Schedules          []AutoScalingSchedule `json:"schedules,omitempty"`
+}
+
+type AutoScalingUpdateRequest struct {
+	Name            string `json:"name"`
+	MinSize         string `json:"minsize"`
+	MaxSize         string `json:"maxsize"`
+	DesiredSize     string `json:"desiredsize"`
+	PublicIPEnabled string `json:"public_ip_enabled,omitempty"`
+	SnapshotID      string `json:"snapshotid,omitempty"`
+	Stack           string `json:"stack,omitempty"`
+	StackID         string `json:"stackid,omitempty"`
+	StackImage      string `json:"stackimage,omitempty"`
 }
 
 type ScalingPolicyCreateRequest struct {
@@ -135,6 +149,41 @@ func (c *Client) CreateAutoScaling(req *AutoScalingCreateRequest) (string, error
 	default:
 		return fmt.Sprintf("%v", v), nil
 	}
+}
+
+func (c *Client) WaitForASGReady(id string) error {
+	for attempt := 0; attempt < 36; attempt++ { // 6 minutes max
+		if attempt > 0 {
+			time.Sleep(10 * time.Second)
+		}
+		asg, err := c.GetAutoScaling(id)
+		if err != nil || asg == nil {
+			continue
+		}
+		status := strings.ToLower(asg.Status)
+		if status == "active" || status == "running" {
+			return nil
+		}
+		if status == "failed" || status == "error" {
+			return fmt.Errorf("auto scaling group entered failed state")
+		}
+	}
+	return fmt.Errorf("STILL_PROVISIONING")
+}
+
+func (c *Client) UpdateAutoScaling(id string, req *AutoScalingUpdateRequest) error {
+	respBytes, err := c.Put(fmt.Sprintf("/autoscaling/%s", id), req)
+	if err != nil {
+		return fmt.Errorf("failed to update auto scaling group: %w", err)
+	}
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return fmt.Errorf("failed to parse update auto scaling response: %w", err)
+	}
+	if result["status"] != "success" {
+		return fmt.Errorf("update auto scaling failed: %s", result["message"])
+	}
+	return nil
 }
 
 func (c *Client) GetAutoScaling(id string) (*AutoScalingInstance, error) {

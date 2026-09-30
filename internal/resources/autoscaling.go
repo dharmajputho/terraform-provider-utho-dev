@@ -3,6 +3,7 @@ package resources
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -103,9 +104,9 @@ func (r *AutoScalingResource) Schema(_ context.Context, _ resource.SchemaRequest
 
 			// Optional
 			"vpc":             schema.StringAttribute{Optional: true, Description: "VPC subnet ID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"load_balancers":  schema.StringAttribute{Optional: true, Description: "Load balancer ID to attach."},
-			"security_groups": schema.StringAttribute{Optional: true, Description: "Security group ID to attach."},
-			"target_groups":   schema.StringAttribute{Optional: true, Description: "Comma-separated target group IDs."},
+			"load_balancers":  schema.StringAttribute{Optional: true, Description: "Load balancer ID to attach. Can be updated in place."},
+			"security_groups": schema.StringAttribute{Optional: true, Description: "Security group ID to attach. Can be updated in place."},
+			"target_groups":   schema.StringAttribute{Optional: true, Description: "Target group IDs. Can be updated in place."},
 			"backupid":        schema.StringAttribute{Optional: true, Description: "Backup ID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"cpumodel":        schema.StringAttribute{Optional: true, Description: "CPU model: amd or intel.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 
@@ -233,8 +234,29 @@ func (r *AutoScalingResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	plan.ID = types.StringValue(id)
-	plan.Status = types.StringValue("Active")
+	plan.Status = types.StringValue("Deploying")
 	plan.CreatedAt = types.StringValue("")
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Poll until Active (up to 6 minutes)
+	if waitErr := r.client.WaitForASGReady(id); waitErr != nil {
+		if waitErr.Error() == "STILL_PROVISIONING" {
+			resp.Diagnostics.AddWarning(
+				"Auto scaling group still provisioning",
+				fmt.Sprintf("Group %q (ID: %s) was created but is still deploying instances. "+
+					"Run terraform apply again once provisioning completes in the Utho Console.", plan.Name.ValueString(), id),
+			)
+		}
+	}
+
+	// Refresh status
+	if asg, err := r.client.GetAutoScaling(id); err == nil && asg != nil {
+		plan.Status = types.StringValue(asg.Status)
+		plan.CreatedAt = types.StringValue(asg.CreatedAt)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -267,8 +289,84 @@ func (r *AutoScalingResource) Update(ctx context.Context, req resource.UpdateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// minsize, maxsize, desiredsize, load_balancers, security_groups, target_groups can be updated
-	// For now save state as-is since API doesn't have a direct update endpoint
+
+	id := state.ID.ValueString()
+
+	// Block updates when still provisioning
+	if strings.ToLower(state.Status.ValueString()) == "deploying" {
+		resp.Diagnostics.AddError(
+			"Auto scaling group is still provisioning",
+			"Cannot update while the group is deploying. Wait for provisioning to complete and run terraform apply again.",
+		)
+		return
+	}
+
+	// Update scaling config if changed
+	if plan.MinSize != state.MinSize || plan.MaxSize != state.MaxSize ||
+		plan.DesiredSize != state.DesiredSize || plan.PublicIPEnabled != state.PublicIPEnabled ||
+		plan.SnapshotID != state.SnapshotID || plan.StackID != state.StackID || plan.StackImage != state.StackImage {
+		updateReq := &client.AutoScalingUpdateRequest{
+			Name:            plan.Name.ValueString(),
+			MinSize:         plan.MinSize.ValueString(),
+			MaxSize:         plan.MaxSize.ValueString(),
+			DesiredSize:     plan.DesiredSize.ValueString(),
+			PublicIPEnabled: fmt.Sprintf("%d", plan.PublicIPEnabled.ValueInt64()),
+			SnapshotID:      plan.SnapshotID.ValueString(),
+			Stack:           plan.Stack.ValueString(),
+			StackID:         plan.StackID.ValueString(),
+			StackImage:      plan.StackImage.ValueString(),
+		}
+		if err := r.client.UpdateAutoScaling(id, updateReq); err != nil {
+			resp.Diagnostics.AddError("Error updating auto scaling group", fmt.Sprintf("%s", err))
+			return
+		}
+	}
+
+	// Handle security group change
+	oldSG := state.SecurityGroups.ValueString()
+	newSG := plan.SecurityGroups.ValueString()
+	if oldSG != newSG {
+		if oldSG != "" {
+			r.client.DetachASGSecurityGroup(id, oldSG)
+		}
+		if newSG != "" {
+			if err := r.client.AttachASGSecurityGroup(id, newSG); err != nil {
+				resp.Diagnostics.AddError("Error updating security group", fmt.Sprintf("%s", err))
+				return
+			}
+		}
+	}
+
+	// Handle load balancer change
+	oldLB := state.LoadBalancers.ValueString()
+	newLB := plan.LoadBalancers.ValueString()
+	if oldLB != newLB {
+		if oldLB != "" {
+			r.client.DetachASGLoadBalancer(id, oldLB)
+		}
+		if newLB != "" {
+			if err := r.client.AttachASGLoadBalancer(id, newLB); err != nil {
+				resp.Diagnostics.AddError("Error updating load balancer", fmt.Sprintf("%s", err))
+				return
+			}
+		}
+	}
+
+	// Handle target group change
+	oldTG := state.TargetGroups.ValueString()
+	newTG := plan.TargetGroups.ValueString()
+	if oldTG != newTG {
+		if oldTG != "" {
+			r.client.DetachASGTargetGroup(id, oldTG)
+		}
+		if newTG != "" {
+			if err := r.client.AttachASGTargetGroup(id, newTG); err != nil {
+				resp.Diagnostics.AddError("Error updating target group", fmt.Sprintf("%s", err))
+				return
+			}
+		}
+	}
+
 	plan.ID = state.ID
 	plan.Status = state.Status
 	plan.CreatedAt = state.CreatedAt
