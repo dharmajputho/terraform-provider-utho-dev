@@ -72,6 +72,42 @@ type AutoScalingModel struct {
 
 func NewAutoScalingResource() resource.Resource { return &AutoScalingResource{} }
 
+func (r *AutoScalingResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	asg, err := r.client.GetAutoScaling(req.ID)
+	if err != nil || asg == nil {
+		resp.Diagnostics.AddError("Error importing auto scaling group", fmt.Sprintf("Could not find ASG with ID %s", req.ID))
+		return
+	}
+	state := AutoScalingModel{
+		ID:              types.StringValue(asg.ID),
+		Name:            types.StringValue(asg.Name),
+		DCSlug:          types.StringValue(asg.DCSlug),
+		MinSize:         types.StringValue(asg.MinSize),
+		MaxSize:         types.StringValue(asg.MaxSize),
+		DesiredSize:     types.StringValue(asg.DesiredSize),
+		PlanID:          types.StringValue(asg.PlanID),
+		PlanName:        types.StringValue(asg.PlanName),
+		Status:          types.StringValue(asg.Status),
+		CreatedAt:       types.StringValue(asg.CreatedAt),
+		OSDiskSize:      types.Int64Value(int64(asg.OSDiskSize)),
+		PublicIPEnabled: types.Int64Value(int64(asg.PublicIPEnabled)),
+		ImageName:       types.StringValue(asg.ImageName),
+		SnapshotID:      types.StringValue(asg.SnapshotID),
+		Stack:           types.StringValue(asg.Stack),
+		StackID:         types.StringValue(asg.StackID),
+		StackImage:      types.StringValue(asg.StackImage),
+		VPC:             types.StringValue(asg.VPC),
+		LoadBalancers:   types.StringValue(asg.LoadBalancers),
+		SecurityGroups:  types.StringValue(asg.SecurityGroups),
+		TargetGroups:    types.StringValue(asg.TargetGroups),
+		BackupID:        types.StringValue(asg.BackupID),
+		CPUModel:        types.StringValue(asg.CPUModel),
+		Policies:        []ASGPolicyModel{},
+		Schedules:       []ASGScheduleModel{},
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 func (r *AutoScalingResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_autoscaling"
 }
