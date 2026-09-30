@@ -27,6 +27,20 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+func NewClientWithURL(apiKey string, baseURL string) *Client {
+	url := BaseURL
+	if baseURL != "" {
+		url = baseURL
+	}
+	return &Client{
+		apiKey:  apiKey,
+		baseURL: url,
+		httpClient: &http.Client{
+			Timeout: 600 * time.Second,
+		},
+	}
+}
+
 func (c *Client) doRequest(method, endpoint string, body interface{}) ([]byte, error) {
 	url := fmt.Sprintf("%s%s", c.baseURL, endpoint)
 

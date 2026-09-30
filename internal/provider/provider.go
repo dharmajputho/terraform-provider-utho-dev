@@ -17,7 +17,8 @@ import (
 type uthoProvider struct{}
 
 type uthoProviderModel struct {
-	APIKey types.String `tfsdk:"api_key"`
+	APIKey  types.String `tfsdk:"api_key"`
+	BaseURL types.String `tfsdk:"base_url"`
 }
 
 func New() func() provider.Provider {
