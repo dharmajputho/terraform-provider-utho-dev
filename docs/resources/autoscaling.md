@@ -1,5 +1,5 @@
 ---
-page_title: "Auto Scaling Group - Utho"
+page_title: "Auto Scaling - Utho"
 subcategory: "Compute / Auto Scaling"
 description: |-
   Create and manage Utho Auto Scaling groups.
@@ -7,44 +7,41 @@ description: |-
 
 # utho_autoscaling
 
-Creates and manages a Utho Auto Scaling group. An auto scaling group automatically adjusts the number of cloud instances based on CPU or RAM thresholds, or on a time-based schedule. When load spikes, it adds instances; when load drops, it removes them.
+Creates and manages an Auto Scaling group on Utho. Automatically scales cloud instances up or down based on CPU/RAM metrics or schedules. Instances are deployed from a snapshot or a stack image.
 
-Add scaling policies later with `utho_autoscaling_policy`, or define them inline at creation.
+~> **Note:** Auto Scaling groups take 5-10 minutes to provision instances. Terraform polls for up to 6 minutes and shows a graceful warning if provisioning is not complete. Run `terraform apply` again once provisioning completes.
 
 ## Example Usage
 
-### Basic auto scaling group
-
-A simple group that scales between 1 and 5 instances based on CPU.
+### Basic ASG with snapshot + CPU policy
 
 ```hcl
 resource "utho_autoscaling" "web" {
   name              = "web-asg"
   dcslug            = "inmumbaizone2"
-  planid            = "10314"
-  planname          = "basic"
-  os_disk_size      = 80
   minsize           = "1"
   maxsize           = "5"
   desiredsize       = "2"
+  planid            = "10404"
+  planname          = "basic"
+  snapshotid        = "203184"
+  image_name        = "my-app-snapshot"
+  os_disk_size      = 80
   public_ip_enabled = 1
-  stack             = "6669726"
-  stackid           = "6669726"
-  stackimage        = "ubuntu-22.04-x86_64"
-  cpumodel          = "amd"
+  cpumodel          = "intel"
 
   policies = [
     {
-      name     = "scale-up"
+      name     = "scale-out"
       type     = "cpu"
       compare  = "above"
       value    = "80"
-      adjust   = 2
+      adjust   = 1
       period   = "5m"
       cooldown = "300"
     },
     {
-      name     = "scale-down"
+      name     = "scale-in"
       type     = "cpu"
       compare  = "below"
       value    = "20"
@@ -56,34 +53,32 @@ resource "utho_autoscaling" "web" {
 }
 ```
 
-### Auto scaling group behind a load balancer
-
-New instances are automatically added to the load balancer as they come up.
+### ASG with stack image
 
 ```hcl
-resource "utho_autoscaling" "app" {
-  name              = "app-asg"
+resource "utho_autoscaling" "web" {
+  name              = "web-asg"
   dcslug            = "inmumbaizone2"
-  planid            = "10314"
+  minsize           = "1"
+  maxsize           = "5"
+  desiredsize       = "1"
+  planid            = "10404"
   planname          = "basic"
-  os_disk_size      = 80
-  minsize           = "2"
-  maxsize           = "10"
-  desiredsize       = "3"
-  public_ip_enabled = 1
-  load_balancers    = utho_loadbalancer.main.id
-  security_groups   = utho_firewall.web.id
-  stack             = "6669726"
-  stackid           = "6669726"
+  stack             = "6669436"
+  stackid           = "6669436"
   stackimage        = "ubuntu-22.04-x86_64"
+  image_name        = "ubuntu-22.04-x86_64"
+  os_disk_size      = 80
+  public_ip_enabled = 1
+  cpumodel          = "intel"
 
   policies = [
     {
-      name     = "scale-up-cpu"
+      name     = "scale-out-cpu"
       type     = "cpu"
       compare  = "above"
-      value    = "75"
-      adjust   = 2
+      value    = "80"
+      adjust   = 1
       period   = "5m"
       cooldown = "300"
     }
@@ -91,125 +86,131 @@ resource "utho_autoscaling" "app" {
 }
 ```
 
-### Auto scaling with scheduled scaling
-
-Scale up before peak hours, scale down at night.
+### ASG with Load Balancer + VPC + security group
 
 ```hcl
-resource "utho_autoscaling" "app" {
-  name              = "app-asg"
+resource "utho_autoscaling" "web" {
+  name              = "web-asg"
   dcslug            = "inmumbaizone2"
-  planid            = "10314"
-  planname          = "basic"
-  os_disk_size      = 80
-  minsize           = "1"
+  minsize           = "2"
   maxsize           = "10"
   desiredsize       = "2"
+  planid            = "10404"
+  planname          = "basic"
+  snapshotid        = var.snapshot_id
+  image_name        = var.snapshot_name
+  os_disk_size      = 80
   public_ip_enabled = 1
-  stack             = "6669726"
-  stackid           = "6669726"
-  stackimage        = "ubuntu-22.04-x86_64"
+  cpumodel          = "intel"
+  vpc               = utho_subnet.public.id
+  load_balancers    = utho_loadbalancer.main.id
+  security_groups   = utho_firewall.web.id
+
+  policies = [
+    {
+      name     = "scale-out-cpu"
+      type     = "cpu"
+      compare  = "above"
+      value    = "75"
+      adjust   = 2
+      period   = "5m"
+      cooldown = "300"
+    },
+    {
+      name     = "scale-in-cpu"
+      type     = "cpu"
+      compare  = "below"
+      value    = "25"
+      adjust   = -1
+      period   = "10m"
+      cooldown = "600"
+    }
+  ]
 
   schedules = [
     {
-      name                = "morning-scale-up"
-      desiredsize         = "6"
+      name                = "peak-hours"
+      desiredsize         = "5"
       timezone            = "Asia/Kolkata"
-      recurrence          = "Every day 09:00"
+      recurrence          = "Every day  09:00"
       recurrence_duration = "Every day"
       recurrence_week     = ""
       selected_time       = "09:00"
-      selected_date       = "2026-09-17"
-      start_date          = "2026-09-17T09:00:00.000+05:30"
-    },
-    {
-      name                = "night-scale-down"
-      desiredsize         = "1"
-      timezone            = "Asia/Kolkata"
-      recurrence          = "Every day 23:00"
-      recurrence_duration = "Every day"
-      recurrence_week     = ""
-      selected_time       = "23:00"
-      selected_date       = "2026-09-17"
-      start_date          = "2026-09-17T23:00:00.000+05:30"
+      selected_date       = "2026-10-01"
+      start_date          = "2026-10-01T09:00:00.000+05:30"
     }
   ]
 }
 ```
 
+### Import existing ASG
+
+```bash
+terraform import utho_autoscaling.web <asg-id>
+```
+
 ## Argument Reference
 
-### Required
+| Argument           | Type   | Required | Description |
+|--------------------|--------|----------|-------------|
+| `name`             | String | Yes      | Unique ASG name. Changing forces new resource. |
+| `dcslug`           | String | Yes      | Data center slug. Changing forces new resource. |
+| `minsize`          | String | Yes      | Minimum instances. Can be updated in place. |
+| `maxsize`          | String | Yes      | Maximum instances. Can be updated in place. |
+| `desiredsize`      | String | Yes      | Desired instances. Can be updated in place. |
+| `planid`           | String | Yes      | Plan ID. Changing forces new resource. |
+| `planname`         | String | Yes      | Plan slug. Changing forces new resource. |
+| `os_disk_size`     | Number | Yes      | Disk size in GB. Changing forces new resource. |
+| `public_ip_enabled`| Number | Yes      | Enable public IP: `1` or `0`. |
+| `policies`         | List   | Yes      | Scaling policies. At least 1 required. |
+| `snapshotid`       | String | No       | Snapshot ID. Required if not using stack. |
+| `stack`            | String | No       | Stack ID. Required if not using snapshot. |
+| `stackid`          | String | No       | Stack ID (same as stack). |
+| `stackimage`       | String | No       | Stack image slug. |
+| `image_name`       | String | No       | Image or snapshot name. |
+| `vpc`              | String | No       | VPC subnet ID. |
+| `load_balancers`   | String | No       | Load balancer ID. Can be updated in place. |
+| `security_groups`  | String | No       | Security group ID. Can be updated in place. |
+| `target_groups`    | String | No       | Target group ID. Can be updated in place. |
+| `cpumodel`         | String | No       | CPU model: `amd` or `intel`. |
+| `schedules`        | List   | No       | Scaling schedules. 0 or more. |
 
-| Argument            | Type   | Description |
-|---------------------|--------|-------------|
-| `name`              | String | Group name. Changing this forces a new resource. |
-| `dcslug`            | String | Data center. Changing this forces a new resource. |
-| `planid`            | String | Plan ID for each instance. Changing this forces a new resource. |
-| `planname`          | String | Plan name (e.g. `basic`). Changing this forces a new resource. |
-| `os_disk_size`      | Number | OS disk size in GB. Changing this forces a new resource. |
-| `minsize`           | String | Minimum number of instances. |
-| `maxsize`           | String | Maximum number of instances. |
-| `desiredsize`       | String | Starting instance count. |
-| `public_ip_enabled` | Number | `1` to assign public IPs, `0` for private only. |
+### policies block
 
-### Image source — one required
+| Argument   | Type   | Required | Description |
+|------------|--------|----------|-------------|
+| `name`     | String | Yes      | Policy name. |
+| `type`     | String | Yes      | Metric: `cpu` or `ram`. |
+| `compare`  | String | Yes      | Trigger: `above` or `below`. |
+| `value`    | String | Yes      | Threshold percentage (e.g. `80`). |
+| `adjust`   | Number | Yes      | Instances to add (positive) or remove (negative). |
+| `period`   | String | Yes      | Evaluation window (e.g. `5m`). |
+| `cooldown` | String | Yes      | Cooldown in seconds (e.g. `300`). |
 
-| Argument     | Description |
-|--------------|-------------|
-| `stack` + `stackid` + `stackimage` | Deploy from a marketplace or custom stack. |
-| `snapshotid` | Deploy from a snapshot (alternative to stack). |
+### schedules block
 
-### Optional
-
-| Argument         | Description |
-|------------------|-------------|
-| `vpc`            | VPC subnet ID. Changing this forces a new resource. |
-| `load_balancers` | Load balancer ID to attach instances to. |
-| `security_groups`| Security group ID. |
-| `target_groups`  | Target group ID (alternative to `load_balancers`). |
-| `cpumodel`       | `amd` or `intel`. Changing this forces a new resource. |
-| `policies`       | Inline scaling policies. See [Policy Block](#policy-block). |
-| `schedules`      | Scheduled scaling. See [Schedule Block](#schedule-block). |
-
-### Policy Block
-
-```hcl
-policies = [
-  {
-    name     = "scale-up"
-    type     = "cpu"       # or "ram"
-    compare  = "above"     # or "below"
-    value    = "80"        # percentage threshold
-    adjust   = 2           # positive = add, negative = remove
-    period   = "5m"        # evaluation window
-    cooldown = "300"       # seconds before next scale action
-  }
-]
-```
-
-### Schedule Block
-
-```hcl
-schedules = [
-  {
-    name                = "peak-hours"
-    desiredsize         = "5"
-    timezone            = "Asia/Kolkata"
-    recurrence          = "Every day 09:00"
-    recurrence_duration = "Every day"
-    recurrence_week     = ""
-    selected_time       = "09:00"
-    selected_date       = "2026-09-17"
-    start_date          = "2026-09-17T09:00:00.000+05:30"
-  }
-]
-```
+| Argument              | Type   | Required | Description |
+|-----------------------|--------|----------|-------------|
+| `name`                | String | Yes      | Schedule name. |
+| `desiredsize`         | String | Yes      | Desired count at schedule time. |
+| `timezone`            | String | Yes      | Timezone (e.g. `Asia/Kolkata`). |
+| `recurrence`          | String | Yes      | Recurrence expression. |
+| `recurrence_duration` | String | Yes      | Duration (e.g. `Every day`). |
+| `selected_time`       | String | Yes      | Time (HH:MM). |
+| `selected_date`       | String | Yes      | Date (YYYY-MM-DD). |
+| `start_date`          | String | Yes      | Start datetime ISO 8601. |
 
 ## Attribute Reference
 
 | Attribute    | Type   | Description |
 |--------------|--------|-------------|
-| `id`         | String | Unique auto scaling group ID. |
-| `status`     | String | Group status. |
+| `id`         | String | Auto Scaling group ID. |
+| `status`     | String | Current status (`Active`, `Deploying`). |
 | `created_at` | String | Creation timestamp. |
+
+## Notes
+
+- Either `snapshotid` or `stack`+`stackid`+`stackimage` must be provided.
+- `load_balancers`, `security_groups`, `target_groups` can be attached/detached after creation without replacing the ASG.
+- `minsize`, `maxsize`, `desiredsize` can be updated in place.
+- Use `lifecycle { ignore_changes = [...] }` for fields that differ between create and read API responses.
