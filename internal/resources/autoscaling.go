@@ -96,7 +96,7 @@ func (r *AutoScalingResource) ImportState(ctx context.Context, req resource.Impo
 		Stack:           types.StringValue(asg.Stack),
 		StackID:         types.StringValue(asg.StackID),
 		StackImage:      types.StringValue(asg.StackImage),
-		VPC:             types.StringValue(asg.VPC),
+		VPC:             types.StringValue(""),
 		LoadBalancers:   types.StringValue(""),
 		SecurityGroups:  types.StringValue(""),
 		TargetGroups:    types.StringValue(""),
