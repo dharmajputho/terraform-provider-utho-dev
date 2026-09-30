@@ -52,7 +52,6 @@ type AutoScalingModel struct {
 	PlanName        types.String       `tfsdk:"planname"`
 	OSDiskSize      types.Int64        `tfsdk:"os_disk_size"`
 	PublicIPEnabled types.Int64        `tfsdk:"public_ip_enabled"`
-	ImageID         types.String       `tfsdk:"image_id"`
 	ImageName       types.String       `tfsdk:"image_name"`
 	SnapshotID      types.String       `tfsdk:"snapshotid"`
 	Stack           types.String       `tfsdk:"stack"`
@@ -96,8 +95,7 @@ func (r *AutoScalingResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"public_ip_enabled": schema.Int64Attribute{Required: true, Description: "Enable public IP: 1 or 0."},
 
 			// Deployment source — at least one required (validated at Create)
-			"image_id":   schema.StringAttribute{Optional: true, Description: "OS image ID (e.g. 1130 for ubuntu-22.04-x86_64). Required for fresh OS image deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"image_name": schema.StringAttribute{Optional: true, Description: "Image name or snapshot name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"image_name": schema.StringAttribute{Optional: true, Description: "For stack deployment: set to the stack image slug (same as stackimage). For snapshot deployment: set to the snapshot name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"snapshotid": schema.StringAttribute{Optional: true, Description: "Snapshot ID for snapshot-based deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"stack":      schema.StringAttribute{Optional: true, Description: "Stack ID (same as stackid).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"stackid":    schema.StringAttribute{Optional: true, Description: "Stack ID for stack-based deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
@@ -178,7 +176,7 @@ func (r *AutoScalingResource) Create(ctx context.Context, req resource.CreateReq
 	// Validate deployment source
 	hasSnapshot := !plan.SnapshotID.IsNull() && plan.SnapshotID.ValueString() != ""
 	hasStack := !plan.StackID.IsNull() && plan.StackID.ValueString() != ""
-	hasImage := (!plan.ImageID.IsNull() && plan.ImageID.ValueString() != "") || (!plan.ImageName.IsNull() && plan.ImageName.ValueString() != "")
+	hasImage := false // image_id not used for autoscaling
 	if !hasSnapshot && !hasStack && !hasImage {
 		resp.Diagnostics.AddError("Validation Error", "At least one deployment source is required: set snapshotid, stackid+stackimage, or image_name.")
 		return
@@ -213,7 +211,7 @@ func (r *AutoScalingResource) Create(ctx context.Context, req resource.CreateReq
 		MaxSize: plan.MaxSize.ValueString(), DesiredSize: plan.DesiredSize.ValueString(),
 		PlanID: plan.PlanID.ValueString(), PlanName: plan.PlanName.ValueString(),
 		InstanceTemplateID: "none",
-		ImageID:            plan.ImageID.ValueString(),
+		ImageID:            "",
 		ImageName:          plan.ImageName.ValueString(),
 		PublicIPEnabled:    int(plan.PublicIPEnabled.ValueInt64()),
 		VPC:                plan.VPC.ValueString(),
