@@ -107,29 +107,29 @@ type ScalingScheduleUpdateRequest struct {
 // ── Response structs ──────────────────────────────────────────────────────
 
 type AutoScalingInstance struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	DCSlug          string `json:"dcslug"`
-	MinSize         string `json:"minsize"`
-	MaxSize         string `json:"maxsize"`
-	DesiredSize     string `json:"desiredsize"`
-	PlanID          string `json:"planid"`
-	PlanName        string `json:"planname"`
-	Status          string `json:"status"`
-	CreatedAt       string `json:"created_at"`
-	OSDiskSize      int    `json:"os_disk_size"`
-	PublicIPEnabled int    `json:"public_ip_enabled"`
-	ImageName       string `json:"image_name"`
-	SnapshotID      string `json:"snapshotid"`
-	Stack           string `json:"stack"`
-	StackID         string `json:"stackid"`
-	StackImage      string `json:"stackimage"`
-	VPC             string `json:"vpc"`
-	LoadBalancers   string `json:"load_balancers"`
-	SecurityGroups  string `json:"security_groups"`
-	TargetGroups    string `json:"target_groups"`
-	BackupID        string `json:"backupid"`
-	CPUModel        string `json:"cpumodel"`
+	ID              string      `json:"id"`
+	Name            string      `json:"name"`
+	DCSlug          string      `json:"dcslug"`
+	MinSize         string      `json:"minsize"`
+	MaxSize         string      `json:"maxsize"`
+	DesiredSize     string      `json:"desiredsize"`
+	PlanID          string      `json:"planid"`
+	PlanName        string      `json:"planname"`
+	Status          string      `json:"status"`
+	CreatedAt       string      `json:"created_at"`
+	OSDiskSize      interface{} `json:"os_disk_size"`
+	PublicIPEnabled interface{} `json:"public_ip_enabled"`
+	ImageName       string      `json:"image_name"`
+	SnapshotID      string      `json:"snapshotid"`
+	Stack           string      `json:"stack"`
+	StackID         string      `json:"stackid"`
+	StackImage      string      `json:"stackimage"`
+	VPC             string      `json:"vpc"`
+	LoadBalancers   string      `json:"load_balancers"`
+	SecurityGroups  string      `json:"security_groups"`
+	TargetGroups    string      `json:"target_groups"`
+	BackupID        string      `json:"backupid"`
+	CPUModel        string      `json:"cpumodel"`
 }
 
 type AutoScalingListResponse struct {
