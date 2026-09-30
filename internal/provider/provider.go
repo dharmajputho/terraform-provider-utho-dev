@@ -41,6 +41,10 @@ func (p *uthoProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp 
 				Sensitive:   true,
 				Description: "Utho API key. Can also be set via UTHO_API_KEY environment variable.",
 			},
+			"base_url": schema.StringAttribute{
+				Optional:    true,
+				Description: "Override the Utho API base URL. Defaults to https://api.utho.com/v2",
+			},
 		},
 	}
 }
