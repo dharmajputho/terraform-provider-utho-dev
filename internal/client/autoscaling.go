@@ -205,24 +205,31 @@ func (c *Client) GetAutoScaling(id string) (*AutoScalingInstance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get autoscaling group: %w", err)
 	}
-	// API returns {"rcode":"success","groups":[...]}
-	var result struct {
-		RCode  string                `json:"rcode"`
-		Groups []AutoScalingInstance `json:"groups"`
-		// fallback keys
-		Autoscaling []AutoScalingInstance `json:"autoscaling"`
-	}
-	if err := json.Unmarshal(respBytes, &result); err != nil {
+	// Use map to avoid unmarshal failures from nested objects
+	var raw map[string]interface{}
+	if err := json.Unmarshal(respBytes, &raw); err != nil {
 		return nil, fmt.Errorf("failed to parse get autoscaling response: %w", err)
 	}
-	groups := result.Groups
-	if len(groups) == 0 {
-		groups = result.Autoscaling
+	// Try groups key first, then autoscaling
+	var groups []interface{}
+	if g, ok := raw["groups"].([]interface{}); ok && len(g) > 0 {
+		groups = g
+	} else if a, ok := raw["autoscaling"].([]interface{}); ok && len(a) > 0 {
+		groups = a
 	}
 	if len(groups) == 0 {
 		return nil, nil
 	}
-	return &groups[0], nil
+	// Marshal first group back to JSON then unmarshal into struct
+	groupBytes, err := json.Marshal(groups[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed to re-marshal autoscaling group: %w", err)
+	}
+	var asg AutoScalingInstance
+	if err := json.Unmarshal(groupBytes, &asg); err != nil {
+		return nil, fmt.Errorf("failed to parse autoscaling group: %w", err)
+	}
+	return &asg, nil
 }
 
 func (c *Client) DeleteAutoScaling(id string, name string) error {
