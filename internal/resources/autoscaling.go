@@ -370,15 +370,18 @@ func (r *AutoScalingResource) Update(ctx context.Context, req resource.UpdateReq
 		plan.DesiredSize != state.DesiredSize || plan.PublicIPEnabled != state.PublicIPEnabled ||
 		plan.SnapshotID != state.SnapshotID || plan.StackID != state.StackID || plan.StackImage != state.StackImage {
 		updateReq := &client.AutoScalingUpdateRequest{
-			Name:            plan.Name.ValueString(),
-			MinSize:         plan.MinSize.ValueString(),
-			MaxSize:         plan.MaxSize.ValueString(),
-			DesiredSize:     plan.DesiredSize.ValueString(),
-			PublicIPEnabled: fmt.Sprintf("%d", plan.PublicIPEnabled.ValueInt64()),
-			SnapshotID:      plan.SnapshotID.ValueString(),
-			Stack:           plan.Stack.ValueString(),
-			StackID:         plan.StackID.ValueString(),
-			StackImage:      plan.StackImage.ValueString(),
+			Name:        plan.Name.ValueString(),
+			MinSize:     plan.MinSize.ValueString(),
+			MaxSize:     plan.MaxSize.ValueString(),
+			DesiredSize: plan.DesiredSize.ValueString(),
+		}
+		// Send only one deployment source
+		if plan.SnapshotID.ValueString() != "" {
+			updateReq.SnapshotID = plan.SnapshotID.ValueString()
+		} else if plan.StackID.ValueString() != "" {
+			updateReq.Stack = plan.Stack.ValueString()
+			updateReq.StackID = plan.StackID.ValueString()
+			updateReq.StackImage = plan.StackImage.ValueString()
 		}
 		if err := r.client.UpdateAutoScaling(id, updateReq); err != nil {
 			resp.Diagnostics.AddError("Error updating auto scaling group", fmt.Sprintf("%s", err))
