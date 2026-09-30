@@ -125,9 +125,9 @@ type AutoScalingInstance struct {
 	StackID         string      `json:"stackid"`
 	StackImage      string      `json:"stackimage"`
 	VPC             string      `json:"vpc"`
-	LoadBalancers   string      `json:"load_balancers"`
-	SecurityGroups  string      `json:"security_groups"`
-	TargetGroups    string      `json:"target_groups"`
+	LoadBalancers   interface{} `json:"load_balancers"`
+	SecurityGroups  interface{} `json:"security_groups"`
+	TargetGroups    interface{} `json:"target_groups"`
 	BackupID        string      `json:"backupid"`
 	CPUModel        string      `json:"cpumodel"`
 }
