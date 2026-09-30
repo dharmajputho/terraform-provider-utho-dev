@@ -142,14 +142,24 @@ func (c *Client) GetAutoScaling(id string) (*AutoScalingInstance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get autoscaling group: %w", err)
 	}
-	var resp AutoScalingDetailResponse
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
+	// API returns {"rcode":"success","groups":[...]}
+	var result struct {
+		RCode  string                `json:"rcode"`
+		Groups []AutoScalingInstance `json:"groups"`
+		// fallback keys
+		Autoscaling []AutoScalingInstance `json:"autoscaling"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse get autoscaling response: %w", err)
 	}
-	if len(resp.Autoscaling) == 0 {
+	groups := result.Groups
+	if len(groups) == 0 {
+		groups = result.Autoscaling
+	}
+	if len(groups) == 0 {
 		return nil, nil
 	}
-	return &resp.Autoscaling[0], nil
+	return &groups[0], nil
 }
 
 func (c *Client) DeleteAutoScaling(id string, name string) error {
