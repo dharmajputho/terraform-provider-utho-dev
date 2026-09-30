@@ -78,6 +78,34 @@ func (r *AutoScalingResource) ImportState(ctx context.Context, req resource.Impo
 		resp.Diagnostics.AddError("Error importing auto scaling group", fmt.Sprintf("Could not find ASG with ID %s", req.ID))
 		return
 	}
+	// Helper to get string from interface{}
+	strVal := func(v interface{}) string {
+		if v == nil {
+			return ""
+		}
+		if s, ok := v.(string); ok {
+			return s
+		}
+		return fmt.Sprintf("%v", v)
+	}
+	// Helper to get int64 from interface{}
+	int64Val := func(v interface{}) int64 {
+		if v == nil {
+			return 0
+		}
+		switch n := v.(type) {
+		case float64:
+			return int64(n)
+		case string:
+			if n == "" {
+				return 0
+			}
+			var i int64
+			fmt.Sscanf(n, "%d", &i)
+			return i
+		}
+		return 0
+	}
 	state := AutoScalingModel{
 		ID:              types.StringValue(asg.ID),
 		Name:            types.StringValue(asg.Name),
@@ -89,14 +117,14 @@ func (r *AutoScalingResource) ImportState(ctx context.Context, req resource.Impo
 		PlanName:        types.StringValue(asg.PlanName),
 		Status:          types.StringValue(asg.Status),
 		CreatedAt:       types.StringValue(asg.CreatedAt),
-		OSDiskSize:      types.Int64Value(0),
-		PublicIPEnabled: types.Int64Value(1),
+		OSDiskSize:      types.Int64Value(int64Val(asg.OSDiskSize)),
+		PublicIPEnabled: types.Int64Value(int64Val(asg.PublicIPEnabled)),
 		ImageName:       types.StringValue(asg.ImageName),
 		SnapshotID:      types.StringValue(asg.SnapshotID),
 		Stack:           types.StringValue(asg.Stack),
 		StackID:         types.StringValue(asg.StackID),
 		StackImage:      types.StringValue(asg.StackImage),
-		VPC:             types.StringValue(""),
+		VPC:             types.StringValue(strVal(asg.VPC)),
 		LoadBalancers:   types.StringValue(""),
 		SecurityGroups:  types.StringValue(""),
 		TargetGroups:    types.StringValue(""),
