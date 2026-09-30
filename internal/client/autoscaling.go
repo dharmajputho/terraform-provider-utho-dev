@@ -128,7 +128,13 @@ func (c *Client) CreateAutoScaling(req *AutoScalingCreateRequest) (string, error
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create autoscaling failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	// ID comes back as float64 from JSON — format as integer
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) GetAutoScaling(id string) (*AutoScalingInstance, error) {
@@ -271,7 +277,13 @@ func (c *Client) CreateScalingPolicy(req *ScalingPolicyCreateRequest) (string, e
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create scaling policy failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	// ID comes back as float64 from JSON — format as integer
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) UpdateScalingPolicy(policyID string, req *ScalingPolicyUpdateRequest) error {
