@@ -69,7 +69,8 @@ func (p *uthoProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 		return
 	}
 
-	uthoClient := client.NewClient(apiKey)
+	baseURL := config.BaseURL.ValueString()
+	uthoClient := client.NewClientWithURL(apiKey, baseURL)
 	resp.DataSourceData = uthoClient
 	resp.ResourceData = uthoClient
 }
