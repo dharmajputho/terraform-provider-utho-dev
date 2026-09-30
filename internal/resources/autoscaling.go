@@ -464,6 +464,11 @@ func (r *ScalingPolicyResource) Create(ctx context.Context, req resource.CreateR
 }
 
 func (r *ScalingPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Policies are embedded in ASG — no standalone get endpoint
+	// Just keep state as-is
+	var state ScalingPolicyModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *ScalingPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -490,7 +495,14 @@ func (r *ScalingPolicyResource) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (r *ScalingPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// Scaling policies are deleted with the autoscaling group
+	var state ScalingPolicyModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if err := r.client.DeleteScalingPolicy(state.ID.ValueString()); err != nil {
+		resp.Diagnostics.AddError("Error deleting scaling policy", fmt.Sprintf("%s", err))
+	}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -550,11 +562,26 @@ func (r *ScalingScheduleResource) Create(ctx context.Context, req resource.Creat
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	plan.ID = types.StringValue(fmt.Sprintf("%s:schedule", plan.ASGId.ValueString()))
+	// Check ASG is Active before adding schedule
+	asg, err := r.client.GetAutoScaling(plan.ASGId.ValueString())
+	if err == nil && asg != nil && strings.ToLower(asg.Status) == "deploying" {
+		resp.Diagnostics.AddError(
+			"Auto scaling group is still provisioning",
+			"Cannot add a schedule while the group is deploying. Wait for provisioning to complete.",
+		)
+		return
+	}
+	// Schedules are created via the ASG update — use a composite ID
+	plan.ID = types.StringValue(fmt.Sprintf("%s:schedule:%s", plan.ASGId.ValueString(), plan.Name.ValueString()))
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r *ScalingScheduleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Schedules are embedded in ASG — no standalone get endpoint
+	// Just keep state as-is
+	var state ScalingScheduleModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *ScalingScheduleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

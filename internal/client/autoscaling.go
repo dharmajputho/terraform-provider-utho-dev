@@ -360,6 +360,24 @@ func (c *Client) UpdateScalingPolicy(policyID string, req *ScalingPolicyUpdateRe
 	return nil
 }
 
+func (c *Client) DeleteScalingPolicy(policyID string) error {
+	respBytes, err := c.Delete(fmt.Sprintf("/autoscaling/policy/%s", policyID))
+	if err != nil {
+		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return fmt.Errorf("failed to delete scaling policy: %w", err)
+	}
+	var result map[string]string
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil
+	}
+	if result["status"] != "success" {
+		return fmt.Errorf("delete scaling policy failed: %s", result["message"])
+	}
+	return nil
+}
+
 // ── Scaling Schedule methods ──────────────────────────────────────────────
 
 func (c *Client) UpdateScalingSchedule(asgID string, scheduleID string, req *ScalingScheduleUpdateRequest) error {
