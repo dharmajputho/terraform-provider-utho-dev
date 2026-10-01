@@ -128,22 +128,28 @@ func (r *IAMUserResource) Read(ctx context.Context, req resource.ReadRequest, re
 }
 
 func (r *IAMUserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan IAMUserModel
+	var plan, state IAMUserModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	plan.ID = state.ID
 
 	resources := "all"
 	if !plan.Resources.IsNull() && plan.Resources.ValueString() != "" {
 		resources = plan.Resources.ValueString()
 	}
 
-	err := r.client.UpdateIAMUser(plan.ID.ValueString(), &client.IAMUserUpdateRequest{
+	updateReq := &client.IAMUserUpdateRequest{
 		Permissions: plan.Permissions.ValueString(),
 		Resources:   resources,
-		Status:      plan.Status.ValueString(),
-	})
+	}
+	// Only send status if explicitly set
+	if !plan.Status.IsNull() && !plan.Status.IsUnknown() && plan.Status.ValueString() != "" {
+		updateReq.Status = plan.Status.ValueString()
+	}
+	err := r.client.UpdateIAMUser(state.ID.ValueString(), updateReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating IAM user", fmt.Sprintf("%s", err))
 		return
