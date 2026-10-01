@@ -11,13 +11,21 @@ type IPSecCreateRequest struct {
 	Name         string `json:"name"`
 	DCSlug       string `json:"dcslug"`
 	VPC          string `json:"vpc"`
-	CPUModel     string `json:"cpumodel,omitempty"`
+	CPUModel     string `json:"cpumodel"`
 	BillingCycle string `json:"billingcycle"`
 }
 
-type IPSecConnectionRequest struct {
+type IPSecPairRequest struct {
+	IPSecID     string `json:"ipsecid"`
+	PeerIPSecID string `json:"peer_ipsecid"`
+	LocalSubnet string `json:"local_subnet"`
+	PeerSubnet  string `json:"peer_subnet"`
+	Name        string `json:"name"`
+}
+
+type IPSecConnectionUpdateRequest struct {
 	IPSecID          string `json:"ipsecid"`
-	ID               string `json:"id,omitempty"`
+	ID               string `json:"id"`
 	Name             string `json:"name"`
 	RemoteIP         string `json:"remote_ip"`
 	RemoteLocalIP    string `json:"remote_local_ip"`
@@ -43,23 +51,15 @@ type IPSecConnectionRequest struct {
 // ── Response structs ──────────────────────────────────────────────────────
 
 type IPSecInstance struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	DCSlug       string `json:"dcslug"`
-	PSK          string `json:"psk"`
-	Status       string `json:"status"`
-	BillingCycle string `json:"billingcycle"`
-	CreatedAt    string `json:"created_at"`
-}
-
-type IPSecListResponse struct {
-	Status string          `json:"status"`
-	Data   []IPSecInstance `json:"data"`
-}
-
-type IPSecDetailResponse struct {
-	Status string        `json:"status"`
-	Data   IPSecInstance `json:"data"`
+	ID           string      `json:"id"`
+	Name         string      `json:"name"`
+	DCSlug       string      `json:"dcslug"`
+	VPC          interface{} `json:"vpc"`
+	PSK          string      `json:"psk"`
+	Status       string      `json:"status"`
+	BillingCycle string      `json:"billingcycle"`
+	CreatedAt    string      `json:"created_at"`
+	CloudID      string      `json:"cloudid"`
 }
 
 type IPSecConnection struct {
@@ -89,11 +89,6 @@ type IPSecConnection struct {
 	CreatedAt        string      `json:"created_at"`
 }
 
-type IPSecConnectionListResponse struct {
-	Status string            `json:"status"`
-	Data   []IPSecConnection `json:"data"`
-}
-
 // ── IPSec Tunnel methods ──────────────────────────────────────────────────
 
 func (c *Client) CreateIPSec(req *IPSecCreateRequest) (string, error) {
@@ -108,7 +103,12 @@ func (c *Client) CreateIPSec(req *IPSecCreateRequest) (string, error) {
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create IPSec failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) GetIPSec(ipsecID string) (*IPSecInstance, error) {
@@ -116,14 +116,17 @@ func (c *Client) GetIPSec(ipsecID string) (*IPSecInstance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get IPSec tunnel: %w", err)
 	}
-	var resp IPSecDetailResponse
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
+	var result struct {
+		Status string        `json:"status"`
+		Data   IPSecInstance `json:"data"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse get IPSec response: %w", err)
 	}
-	if resp.Data.ID == "" {
+	if result.Data.ID == "" {
 		return nil, nil
 	}
-	return &resp.Data, nil
+	return &result.Data, nil
 }
 
 func (c *Client) DeleteIPSec(ipsecID string) error {
@@ -141,24 +144,33 @@ func (c *Client) DeleteIPSec(ipsecID string) error {
 	return nil
 }
 
-// ── IPSec Connection methods ──────────────────────────────────────────────
+// ── IPSec Pair (Connection) methods ──────────────────────────────────────
 
-func (c *Client) CreateIPSecConnection(req *IPSecConnectionRequest) (string, error) {
-	respBytes, err := c.Post("/ipsec?action=connection", req)
+func (c *Client) CreateIPSecPair(req *IPSecPairRequest) (string, error) {
+	respBytes, err := c.Post("/ipsec?action=pair", req)
 	if err != nil {
-		return "", fmt.Errorf("failed to create IPSec connection: %w", err)
+		return "", fmt.Errorf("failed to create IPSec pair: %w", err)
 	}
 	var result map[string]interface{}
 	if err := json.Unmarshal(respBytes, &result); err != nil {
-		return "", fmt.Errorf("failed to parse create IPSec connection response: %w", err)
+		return "", fmt.Errorf("failed to parse create IPSec pair response: %w", err)
 	}
 	if result["status"] != "success" {
-		return "", fmt.Errorf("create IPSec connection failed: %s", result["message"])
+		return "", fmt.Errorf("create IPSec pair failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	// Extract connection_id from side_a
+	if sideA, ok := result["side_a"].(map[string]interface{}); ok {
+		switch v := sideA["connection_id"].(type) {
+		case float64:
+			return fmt.Sprintf("%.0f", v), nil
+		default:
+			return fmt.Sprintf("%v", v), nil
+		}
+	}
+	return "", fmt.Errorf("could not find connection_id in response")
 }
 
-func (c *Client) UpdateIPSecConnection(req *IPSecConnectionRequest) error {
+func (c *Client) UpdateIPSecConnection(req *IPSecConnectionUpdateRequest) error {
 	respBytes, err := c.Put("/ipsec?action=connection", req)
 	if err != nil {
 		return fmt.Errorf("failed to update IPSec connection: %w", err)
@@ -178,11 +190,14 @@ func (c *Client) ListIPSecConnections(ipsecID string) ([]IPSecConnection, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list IPSec connections: %w", err)
 	}
-	var resp IPSecConnectionListResponse
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
+	var result struct {
+		Status string            `json:"status"`
+		Data   []IPSecConnection `json:"data"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse list IPSec connections response: %w", err)
 	}
-	return resp.Data, nil
+	return result.Data, nil
 }
 
 func (c *Client) DeleteIPSecConnection(ipsecID string, connectionID string) error {
