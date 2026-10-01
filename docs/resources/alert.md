@@ -1,121 +1,68 @@
 ---
-page_title: "Monitoring Alert - Utho"
+page_title: "Alert - Utho"
 subcategory: "Monitoring"
 description: |-
-  Create and manage metric-based monitoring alerts for cloud instances.
+  Create and manage monitoring alerts for Utho cloud instances.
 ---
 
 # utho_alert
 
-Creates and manages a monitoring alert rule. Alerts watch a metric (CPU, RAM, disk, bandwidth) on one or more cloud instances. When the metric crosses a threshold for a specified duration, Utho sends an email and SMS notification to the configured contacts.
+Creates and manages a monitoring alert for Utho cloud instances. Alerts trigger when CPU or RAM usage crosses a threshold and notify the specified contacts.
 
 ## Example Usage
 
-### CPU spike alert
-
-Alert your team when CPU stays above 80% for 5 minutes — a sign your servers are overloaded.
+### CPU alert on a cloud instance
 
 ```hcl
-resource "utho_alert_contact" "oncall" {
-  name         = "on-call"
-  email        = "oncall@mycompany.com"
-  mobilenumber = "9876543210"
-  status       = "1"
-}
-
-resource "utho_alert" "cpu_high" {
-  name     = "cpu-above-80"
-  ref_type = "cloud"
-  type     = "cpu"
-  compare  = "above"
-  value    = "80"
-  for      = "5m"
-  contacts = utho_alert_contact.oncall.id
-  status   = "active"
-  ref_ids  = utho_cloud.app[0].id
-}
-```
-
-### Monitor all servers in a fleet
-
-Watch all your app servers at once. Use `join(",", ...)` to build a comma-separated list of IDs.
-
-```hcl
-resource "utho_alert" "cpu_fleet" {
-  name     = "fleet-cpu-alert"
-  ref_type = "cloud"
-  type     = "cpu"
-  compare  = "above"
-  value    = "85"
-  for      = "10m"
-  contacts = utho_alert_contact.oncall.id
-  status   = "active"
-  ref_ids  = join(",", utho_cloud.app[*].id)
-}
-```
-
-### Full monitoring setup — CPU, RAM, and disk
-
-```hcl
-resource "utho_alert_contact" "ops" {
-  name         = "ops-team"
-  email        = "ops@mycompany.com"
-  mobilenumber = "9571054173"
+resource "utho_alert_contact" "devops" {
+  name         = "devops-team"
+  email        = "devops@mycompany.com"
+  mobilenumber = "9999999999"
   status       = "1"
 }
 
 resource "utho_alert" "cpu" {
-  name     = "cpu-high"
+  name     = "high-cpu-alert"
   ref_type = "cloud"
   type     = "cpu"
   compare  = "above"
   value    = "80"
   for      = "5m"
-  contacts = utho_alert_contact.ops.id
-  status   = "active"
-  ref_ids  = join(",", utho_cloud.app[*].id)
+  contacts = utho_alert_contact.devops.id
+  status   = "1"
+  ref_ids  = utho_cloud.web.id
 }
+```
 
+### RAM alert
+
+```hcl
 resource "utho_alert" "ram" {
-  name     = "ram-high"
+  name     = "high-ram-alert"
   ref_type = "cloud"
   type     = "ram"
   compare  = "above"
   value    = "85"
   for      = "5m"
-  contacts = utho_alert_contact.ops.id
-  status   = "active"
-  ref_ids  = join(",", utho_cloud.app[*].id)
-}
-
-resource "utho_alert" "disk" {
-  name     = "disk-full"
-  ref_type = "cloud"
-  type     = "disk"
-  compare  = "above"
-  value    = "90"
-  for      = "15m"
-  contacts = utho_alert_contact.ops.id
-  status   = "active"
-  ref_ids  = join(",", utho_cloud.app[*].id)
+  contacts = utho_alert_contact.devops.id
+  status   = "1"
+  ref_ids  = utho_cloud.web.id
 }
 ```
 
-### Notify multiple contacts
-
-Pass a comma-separated list of contact IDs.
+### Multiple instances + multiple contacts
 
 ```hcl
-resource "utho_alert" "critical" {
-  name     = "critical-cpu"
+resource "utho_alert" "cpu" {
+  name     = "prod-cpu-alert"
   ref_type = "cloud"
   type     = "cpu"
   compare  = "above"
-  value    = "95"
+  value    = "80"
   for      = "5m"
-  contacts = "${utho_alert_contact.ops.id},${utho_alert_contact.oncall.id}"
-  status   = "active"
-  ref_ids  = utho_cloud.prod.id
+  contacts = "${utho_alert_contact.devops.id},${utho_alert_contact.oncall.id}"
+  status   = "1"
+  ref_ids  = "${utho_cloud.web1.id},${utho_cloud.web2.id},${utho_cloud.web3.id}"
 }
 ```
 
@@ -123,27 +70,31 @@ resource "utho_alert" "critical" {
 
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
-| `name`     | String | Yes      | Alert name. Updatable. |
-| `ref_type` | String | Yes      | Resource type: `cloud`. Changing this forces a new resource. |
-| `type`     | String | Yes      | Metric: `cpu`, `ram`, `disk`, `bandwidth`. Changing this forces a new resource. |
-| `compare`  | String | Yes      | `above` or `below` the threshold. Updatable. |
-| `value`    | String | Yes      | Threshold percentage (e.g. `"80"` for 80%). Updatable. |
-| `for`      | String | Yes      | How long the threshold must be breached: `5m`, `10m`, `15m`, `30m`, `1h`. Updatable. |
-| `contacts` | String | Yes      | Comma-separated contact IDs. Updatable. |
-| `status`   | String | Yes      | `active` or `inactive`. Updatable. |
-| `ref_ids`  | String | Yes      | Comma-separated cloud instance IDs to monitor. Changing this forces a new resource. |
+| `name`     | String | Yes      | Alert name. |
+| `ref_type` | String | Yes      | Resource type: `cloud`. |
+| `type`     | String | Yes      | Metric: `cpu` or `ram`. |
+| `compare`  | String | Yes      | Trigger direction: `above` or `below`. |
+| `value`    | String | Yes      | Threshold percentage (e.g. `80`). Can be updated in place. |
+| `for`      | String | Yes      | Evaluation window (e.g. `5m`, `10m`). |
+| `contacts` | String | Yes      | Comma-separated alert contact IDs. |
+| `status`   | String | Yes      | Enable alert: `1` or `0`. |
+| `ref_ids`  | String | Yes      | Comma-separated cloud instance IDs to monitor. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Unique alert rule ID. |
+| `id`      | String | Alert ID. |
 
-## Recommended Thresholds
+## Related Resources
 
-| Metric      | Warning | Critical |
-|-------------|---------|----------|
-| CPU         | 70%     | 85%      |
-| RAM         | 75%     | 90%      |
-| Disk        | 80%     | 90%      |
-| Bandwidth   | — (use `below` for underutilization) | |
+| Resource | Purpose |
+|----------|---------|
+| [utho_alert_contact](alert_contact) | Contacts that receive alert notifications |
+| [data.utho_clouds](../data-sources/clouds) | List cloud instances to use as ref_ids |
+
+## Notes
+
+- Multiple instances: `ref_ids = "id1,id2,id3"` — one alert watches all.
+- Multiple contacts: `contacts = "id1,id2"` — all contacts notified.
+- `value` and `contacts` can be updated in place without recreating the alert.

@@ -13,6 +13,8 @@ type IAMUserCreateRequest struct {
 	MobileCC    string `json:"mobilecc"`
 	Mobile      string `json:"mobile"`
 	Permissions string `json:"permissions"`
+	Resources   string `json:"resources"`
+	Status      string `json:"status"`
 }
 
 type IAMUserUpdateRequest struct {
@@ -56,7 +58,12 @@ func (c *Client) CreateIAMUser(req *IAMUserCreateRequest) (string, error) {
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create IAM user failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) GetIAMUser(userID string) (*IAMUserInstance, error) {

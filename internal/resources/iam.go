@@ -74,12 +74,18 @@ func (r *IAMUserResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	resources := plan.Resources.ValueString()
+	if resources == "" {
+		resources = "all"
+	}
 	id, err := r.client.CreateIAMUser(&client.IAMUserCreateRequest{
 		FullName:    plan.FullName.ValueString(),
 		Email:       plan.Email.ValueString(),
 		MobileCC:    plan.MobileCC.ValueString(),
 		Mobile:      plan.Mobile.ValueString(),
 		Permissions: plan.Permissions.ValueString(),
+		Resources:   resources,
+		Status:      plan.Status.ValueString(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating IAM user", fmt.Sprintf("%s", err))
