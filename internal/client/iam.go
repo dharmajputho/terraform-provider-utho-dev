@@ -25,13 +25,14 @@ type IAMUserUpdateRequest struct {
 // ── Response structs ──────────────────────────────────────────────────────
 
 type IAMUserInstance struct {
-	ID          string `json:"id"`
-	FullName    string `json:"fullname"`
-	Email       string `json:"email"`
-	Permissions string `json:"permissions"`
-	Status      string `json:"status"`
-	Resources   string `json:"resources"`
-	DateAdded   string `json:"dateadded"`
+	ID          string      `json:"id"`
+	SubUser     interface{} `json:"subuser"`
+	FullName    string      `json:"fullname"`
+	Email       string      `json:"email"`
+	Permissions string      `json:"permissions"`
+	Status      string      `json:"status"`
+	Resources   string      `json:"resources"`
+	DateAdded   string      `json:"dateadded"`
 }
 
 type IAMUserListResponse struct {
@@ -67,18 +68,16 @@ func (c *Client) CreateIAMUser(req *IAMUserCreateRequest) (string, error) {
 }
 
 func (c *Client) GetIAMUser(userID string) (*IAMUserInstance, error) {
-	respBytes, err := c.Get(fmt.Sprintf("/user/%s", userID))
+	users, err := c.ListIAMUsers()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get IAM user: %w", err)
+		return nil, err
 	}
-	var resp IAMUserDetailResponse
-	if err := json.Unmarshal(respBytes, &resp); err != nil {
-		return nil, fmt.Errorf("failed to parse get IAM user response: %w", err)
+	for _, u := range users {
+		if u.ID == userID || fmt.Sprintf("%v", u.SubUser) == userID {
+			return &u, nil
+		}
 	}
-	if resp.Info.ID == "" {
-		return nil, nil
-	}
-	return &resp.Info, nil
+	return nil, nil
 }
 
 func (c *Client) ListIAMUsers() ([]IAMUserInstance, error) {
