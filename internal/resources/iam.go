@@ -21,7 +21,6 @@ type IAMUserModel struct {
 	MobileCC    types.String `tfsdk:"mobilecc"`
 	Mobile      types.String `tfsdk:"mobile"`
 	Permissions types.String `tfsdk:"permissions"`
-	Resources   types.String `tfsdk:"resources"`
 	Status      types.String `tfsdk:"status"`
 	DateAdded   types.String `tfsdk:"date_added"`
 }
@@ -34,23 +33,16 @@ func (r *IAMUserResource) Metadata(_ context.Context, req resource.MetadataReque
 
 func (r *IAMUserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Create and manage Utho IAM sub-users with granular permissions.",
+		Description: "Create and manage IAM sub-users in your Utho account.",
 		Attributes: map[string]schema.Attribute{
-			"id":         schema.StringAttribute{Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"status":     schema.StringAttribute{Optional: true, Computed: true, Description: "User status. Set to 1 to enable, 0 to disable."},
-			"date_added": schema.StringAttribute{Computed: true, Description: "Timestamp when the user was invited."},
-			"fullname":   schema.StringAttribute{Required: true, Description: "Full name of the sub-user.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"email":      schema.StringAttribute{Required: true, Description: "Email address of the sub-user.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"mobilecc":   schema.StringAttribute{Required: true, Description: "Mobile country code (e.g. 91 for India).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"mobile":     schema.StringAttribute{Required: true, Description: "Mobile number.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"permissions": schema.StringAttribute{
-				Required:    true,
-				Description: "Comma-separated list of permissions. Format: {service}_{read|write|delete}. E.g. compute_read,compute_write,compute_delete.",
-			},
-			"resources": schema.StringAttribute{
-				Optional:    true,
-				Description: "Resource scope: all or specific resource IDs. Default: all.",
-			},
+			"id":          schema.StringAttribute{Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"status":      schema.StringAttribute{Computed: true, Description: "User status (Pending, Active)."},
+			"date_added":  schema.StringAttribute{Computed: true, Description: "Date user was added.", PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
+			"fullname":    schema.StringAttribute{Required: true, Description: "Full name of the IAM user.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"email":       schema.StringAttribute{Required: true, Description: "Email address. Must be unique.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"mobilecc":    schema.StringAttribute{Required: true, Description: "Mobile country code (e.g. 91).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"mobile":      schema.StringAttribute{Required: true, Description: "Mobile number.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"permissions": schema.StringAttribute{Required: true, Description: "Comma-separated permissions string."},
 		},
 	}
 }
@@ -74,18 +66,12 @@ func (r *IAMUserResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	resources := plan.Resources.ValueString()
-	if resources == "" {
-		resources = "all"
-	}
 	id, err := r.client.CreateIAMUser(&client.IAMUserCreateRequest{
 		FullName:    plan.FullName.ValueString(),
 		Email:       plan.Email.ValueString(),
 		MobileCC:    plan.MobileCC.ValueString(),
 		Mobile:      plan.Mobile.ValueString(),
 		Permissions: plan.Permissions.ValueString(),
-		Resources:   resources,
-		Status:      plan.Status.ValueString(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating IAM user", fmt.Sprintf("%s", err))
@@ -95,9 +81,6 @@ func (r *IAMUserResource) Create(ctx context.Context, req resource.CreateRequest
 	plan.ID = types.StringValue(id)
 	plan.Status = types.StringValue("Pending")
 	plan.DateAdded = types.StringValue("")
-	if plan.Resources.IsNull() {
-		plan.Resources = types.StringValue("all")
-	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -118,10 +101,9 @@ func (r *IAMUserResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	// Only refresh status and date_added from API
-	// Permissions/resources are kept from state due to API caching delay
 	state.Status = types.StringValue(user.Status)
 	state.DateAdded = types.StringValue(user.DateAdded)
+	state.Permissions = types.StringValue(user.Permissions)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -132,27 +114,16 @@ func (r *IAMUserResource) Update(ctx context.Context, req resource.UpdateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	plan.ID = state.ID
 
-	resources := "all"
-	if !plan.Resources.IsNull() && plan.Resources.ValueString() != "" {
-		resources = plan.Resources.ValueString()
-	}
-
-	updateReq := &client.IAMUserUpdateRequest{
+	err := r.client.UpdateIAMUser(state.ID.ValueString(), &client.IAMUserUpdateRequest{
 		Permissions: plan.Permissions.ValueString(),
-		Resources:   resources,
-	}
-	// Only send status if explicitly set
-	if !plan.Status.IsNull() && !plan.Status.IsUnknown() && plan.Status.ValueString() != "" {
-		updateReq.Status = plan.Status.ValueString()
-	}
-	err := r.client.UpdateIAMUser(state.ID.ValueString(), updateReq)
+	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating IAM user", fmt.Sprintf("%s", err))
 		return
 	}
-	// Keep status and date_added from state - API has caching delay
+
+	plan.ID = state.ID
 	plan.Status = state.Status
 	plan.DateAdded = state.DateAdded
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
