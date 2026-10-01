@@ -154,12 +154,9 @@ func (r *IAMUserResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError("Error updating IAM user", fmt.Sprintf("%s", err))
 		return
 	}
-	// Refresh from API after update
-	user, err2 := r.client.GetIAMUser(plan.ID.ValueString())
-	if err2 == nil && user != nil {
-		plan.Status = types.StringValue(user.Status)
-		plan.DateAdded = types.StringValue(user.DateAdded)
-	}
+	// Keep status and date_added from state - API has caching delay
+	plan.Status = state.Status
+	plan.DateAdded = state.DateAdded
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
