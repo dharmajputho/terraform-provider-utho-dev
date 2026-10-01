@@ -37,7 +37,7 @@ func (r *IAMUserResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 		Description: "Create and manage Utho IAM sub-users with granular permissions.",
 		Attributes: map[string]schema.Attribute{
 			"id":         schema.StringAttribute{Computed: true, PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()}},
-			"status":     schema.StringAttribute{Computed: true, Description: "User status (e.g. Pending, Active)."},
+			"status":     schema.StringAttribute{Optional: true, Computed: true, Description: "User status. Set to 1 to enable, 0 to disable."},
 			"date_added": schema.StringAttribute{Computed: true, Description: "Timestamp when the user was invited."},
 			"fullname":   schema.StringAttribute{Required: true, Description: "Full name of the sub-user.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"email":      schema.StringAttribute{Required: true, Description: "Email address of the sub-user.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
@@ -142,6 +142,7 @@ func (r *IAMUserResource) Update(ctx context.Context, req resource.UpdateRequest
 	err := r.client.UpdateIAMUser(plan.ID.ValueString(), &client.IAMUserUpdateRequest{
 		Permissions: plan.Permissions.ValueString(),
 		Resources:   resources,
+		Status:      plan.Status.ValueString(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating IAM user", fmt.Sprintf("%s", err))

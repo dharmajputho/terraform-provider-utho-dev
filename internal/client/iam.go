@@ -20,6 +20,7 @@ type IAMUserCreateRequest struct {
 type IAMUserUpdateRequest struct {
 	Permissions string `json:"permissions"`
 	Resources   string `json:"resources"`
+	Status      string `json:"status,omitempty"`
 }
 
 // ── Response structs ──────────────────────────────────────────────────────
@@ -59,12 +60,32 @@ func (c *Client) CreateIAMUser(req *IAMUserCreateRequest) (string, error) {
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create IAM user failed: %s", result["message"])
 	}
+	// API returns subuser ID — we need the account access ID from the list
+	var subuserID string
 	switch v := result["id"].(type) {
 	case float64:
-		return fmt.Sprintf("%.0f", v), nil
+		subuserID = fmt.Sprintf("%.0f", v)
 	default:
-		return fmt.Sprintf("%v", v), nil
+		subuserID = fmt.Sprintf("%v", v)
 	}
+	// Find account access ID by matching subuser ID
+	users, err := c.ListIAMUsers()
+	if err == nil {
+		for _, u := range users {
+			subID := fmt.Sprintf("%.0f", func() float64 {
+				switch v := u.SubUser.(type) {
+				case float64:
+					return v
+				}
+				return 0
+			}())
+			if subID == subuserID {
+				return u.ID, nil
+			}
+		}
+	}
+	// Fallback to subuser ID if list fails
+	return subuserID, nil
 }
 
 func (c *Client) GetIAMUser(userID string) (*IAMUserInstance, error) {
@@ -73,7 +94,14 @@ func (c *Client) GetIAMUser(userID string) (*IAMUserInstance, error) {
 		return nil, err
 	}
 	for _, u := range users {
-		if u.ID == userID || fmt.Sprintf("%v", u.SubUser) == userID {
+		subID := fmt.Sprintf("%.0f", func() float64 {
+			switch v := u.SubUser.(type) {
+			case float64:
+				return v
+			}
+			return 0
+		}())
+		if u.ID == userID || subID == userID {
 			return &u, nil
 		}
 	}
