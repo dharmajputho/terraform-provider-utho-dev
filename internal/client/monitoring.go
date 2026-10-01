@@ -70,7 +70,12 @@ func (c *Client) CreateAlertContact(req *AlertContactCreateRequest) (string, err
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create alert contact failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) UpdateAlertContact(contactID string, req *AlertContactCreateRequest) error {
@@ -142,7 +147,12 @@ func (c *Client) CreateAlert(req *AlertCreateRequest) (string, error) {
 	if result["status"] != "success" {
 		return "", fmt.Errorf("create alert failed: %s", result["message"])
 	}
-	return fmt.Sprintf("%v", result["id"]), nil
+	switch v := result["id"].(type) {
+	case float64:
+		return fmt.Sprintf("%.0f", v), nil
+	default:
+		return fmt.Sprintf("%v", v), nil
+	}
 }
 
 func (c *Client) UpdateAlert(alertID string, req *AlertCreateRequest) error {
