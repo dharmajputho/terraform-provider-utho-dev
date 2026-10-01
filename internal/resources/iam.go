@@ -118,10 +118,8 @@ func (r *IAMUserResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	state.FullName = types.StringValue(user.FullName)
-	state.Email = types.StringValue(user.Email)
-	state.Permissions = types.StringValue(user.Permissions)
-	state.Resources = types.StringValue(user.Resources)
+	// Only refresh status and date_added from API
+	// Permissions/resources are kept from state due to API caching delay
 	state.Status = types.StringValue(user.Status)
 	state.DateAdded = types.StringValue(user.DateAdded)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
