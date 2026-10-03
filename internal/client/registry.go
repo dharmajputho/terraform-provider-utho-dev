@@ -11,7 +11,7 @@ type ContainerRegistryCreateRequest struct {
 	DCSlug       string `json:"dcslug"`
 	PlanID       int    `json:"planid"`
 	BillingCycle string `json:"billingcycle"`
-	Public       bool   `json:"public"`
+	Public       string `json:"public"`
 	ProjectName  string `json:"project_name"`
 }
 

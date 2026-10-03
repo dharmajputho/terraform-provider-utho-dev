@@ -74,7 +74,7 @@ func (r *ContainerRegistryResource) Create(ctx context.Context, req resource.Cre
 		DCSlug:       plan.DCSlug.ValueString(),
 		PlanID:       int(plan.PlanID.ValueInt64()),
 		BillingCycle: plan.BillingCycle.ValueString(),
-		Public:       plan.Public.ValueBool(),
+		Public:       fmt.Sprintf("%v", plan.Public.ValueBool()),
 		ProjectName:  plan.ProjectName.ValueString(),
 	})
 	if err != nil {
