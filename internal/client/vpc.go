@@ -389,6 +389,21 @@ func (c *Client) CreateRouteTable(req *RouteTableCreateRequest) (string, error) 
 	return resp.ID, nil
 }
 
+func (c *Client) GetRouteTable(routeTableID string) ([]RouteTableInstance, error) {
+	respBytes, err := c.Get(fmt.Sprintf("/vpc/routetable?route_table_id=%s", routeTableID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get route table: %w", err)
+	}
+	var result struct {
+		Status string               `json:"status"`
+		Data   []RouteTableInstance `json:"data"`
+	}
+	if err := json.Unmarshal(respBytes, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse get route table response: %w", err)
+	}
+	return result.Data, nil
+}
+
 func (c *Client) AttachRouteTable(vpcID string, routeTableID string) error {
 	endpoint := fmt.Sprintf("/vpc/%s/routetable/%s/attach", vpcID, routeTableID)
 	respBytes, err := c.Post(endpoint, nil)

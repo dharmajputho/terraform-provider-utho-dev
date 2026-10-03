@@ -67,15 +67,25 @@ func (r *RouteTableResource) Create(ctx context.Context, req resource.CreateRequ
 
 	plan.ID = types.StringValue(id)
 
-	// Attach to VPC after creation
-	if err := r.client.AttachRouteTable(plan.VPCID.ValueString(), id); err != nil {
-		resp.Diagnostics.AddError("Error attaching route table to VPC", fmt.Sprintf("%s", err))
-		return
-	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r *RouteTableResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state RouteTableModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	tables, err := r.client.GetRouteTable(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading route table", fmt.Sprintf("%s", err))
+		return
+	}
+	if len(tables) == 0 {
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *RouteTableResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
