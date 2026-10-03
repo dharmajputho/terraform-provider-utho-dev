@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 // ── Request structs ───────────────────────────────────────────────────────
@@ -145,6 +146,25 @@ func (c *Client) DeleteIPSec(ipsecID string) error {
 }
 
 // ── IPSec Pair (Connection) methods ──────────────────────────────────────
+
+func (c *Client) WaitForIPSecReady(id string) error {
+	for attempt := 0; attempt < 60; attempt++ {
+		if attempt > 0 {
+			time.Sleep(10 * time.Second)
+		}
+		ipsec, err := c.GetIPSec(id)
+		if err != nil || ipsec == nil {
+			continue
+		}
+		if ipsec.Status == "active" {
+			return nil
+		}
+		if ipsec.Status == "failed" || ipsec.Status == "error" {
+			return fmt.Errorf("IPSec tunnel entered failed state")
+		}
+	}
+	return fmt.Errorf("STILL_PROVISIONING")
+}
 
 func (c *Client) CreateIPSecPair(req *IPSecPairRequest) (string, error) {
 	respBytes, err := c.Post("/ipsec?action=pair", req)

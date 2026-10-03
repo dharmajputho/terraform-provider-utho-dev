@@ -90,6 +90,28 @@ func (r *IPSecResource) Create(ctx context.Context, req resource.CreateRequest, 
 	plan.CreatedAt = types.StringValue("")
 	plan.CloudID = types.StringValue("")
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Poll until active (up to 10 minutes)
+	if waitErr := r.client.WaitForIPSecReady(id); waitErr != nil {
+		if waitErr.Error() == "STILL_PROVISIONING" {
+			resp.Diagnostics.AddWarning(
+				"IPSec tunnel still provisioning",
+				fmt.Sprintf("Tunnel %q (ID: %s) is still deploying. Run terraform apply again once active.", plan.Name.ValueString(), id),
+			)
+		}
+	}
+
+	// Refresh from API
+	if ipsec, err2 := r.client.GetIPSec(id); err2 == nil && ipsec != nil {
+		plan.PSK = types.StringValue(ipsec.PSK)
+		plan.Status = types.StringValue(ipsec.Status)
+		plan.CreatedAt = types.StringValue(ipsec.CreatedAt)
+		plan.CloudID = types.StringValue(ipsec.CloudID)
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r *IPSecResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
