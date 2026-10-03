@@ -24,9 +24,9 @@ type ContainerRegistryModel struct {
 	ID           types.String `tfsdk:"id"`
 	ProjectName  types.String `tfsdk:"project_name"`
 	DCSlug       types.String `tfsdk:"dcslug"`
-	PlanID       types.String `tfsdk:"planid"`
+	PlanID       types.Int64  `tfsdk:"planid"`
 	BillingCycle types.String `tfsdk:"billingcycle"`
-	Public       types.String `tfsdk:"public"`
+	Public       types.Bool   `tfsdk:"public"`
 	CreatedAt    types.String `tfsdk:"created_at"`
 }
 
@@ -44,9 +44,9 @@ func (r *ContainerRegistryResource) Schema(_ context.Context, _ resource.SchemaR
 			"created_at":   schema.StringAttribute{Computed: true, Description: "Creation timestamp."},
 			"project_name": schema.StringAttribute{Required: true, Description: "Registry project name (e.g. my-registry).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"dcslug":       schema.StringAttribute{Required: true, Description: "Data center slug.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"planid":       schema.StringAttribute{Required: true, Description: "Registry plan ID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"planid":       schema.Int64Attribute{Required: true, Description: "Registry plan ID (e.g. 10276 for Starter).", PlanModifiers: []planmodifier.Int64{int64planmodifier.RequiresReplace()}},
 			"billingcycle": schema.StringAttribute{Required: true, Description: "Billing cycle: monthly.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"public":       schema.StringAttribute{Required: true, Description: "Registry visibility: true (public) or false (private)."},
+			"public":       schema.BoolAttribute{Required: true, Description: "Set true for public registry, false for private."},
 		},
 	}
 }
@@ -72,9 +72,9 @@ func (r *ContainerRegistryResource) Create(ctx context.Context, req resource.Cre
 
 	_, err := r.client.CreateContainerRegistry(&client.ContainerRegistryCreateRequest{
 		DCSlug:       plan.DCSlug.ValueString(),
-		PlanID:       plan.PlanID.ValueString(),
+		PlanID:       int(plan.PlanID.ValueInt64()),
 		BillingCycle: plan.BillingCycle.ValueString(),
-		Public:       plan.Public.ValueString(),
+		Public:       plan.Public.ValueBool(),
 		ProjectName:  plan.ProjectName.ValueString(),
 	})
 	if err != nil {
@@ -115,7 +115,7 @@ func (r *ContainerRegistryResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	if err := r.client.UpdateContainerRegistry(plan.ProjectName.ValueString(), plan.Public.ValueString()); err != nil {
+	if err := r.client.UpdateContainerRegistry(plan.ProjectName.ValueString(), fmt.Sprintf("%v", plan.Public.ValueBool())); err != nil {
 		resp.Diagnostics.AddError("Error updating container registry", fmt.Sprintf("%s", err))
 		return
 	}

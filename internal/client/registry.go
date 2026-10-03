@@ -9,9 +9,9 @@ import (
 
 type ContainerRegistryCreateRequest struct {
 	DCSlug       string `json:"dcslug"`
-	PlanID       string `json:"planid"`
+	PlanID       int    `json:"planid"`
 	BillingCycle string `json:"billingcycle"`
-	Public       string `json:"public"`
+	Public       bool   `json:"public"`
 	ProjectName  string `json:"project_name"`
 }
 
