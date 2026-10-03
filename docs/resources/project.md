@@ -1,62 +1,21 @@
 ---
 page_title: "Project - Utho"
-subcategory: "Account / Projects"
+subcategory: "Projects"
 description: |-
   Create and manage Utho Projects to organize resources and team members.
 ---
 
 # utho_project
 
-Creates and manages a Utho Project. Projects help you organize resources and control team access by environment (development, staging, production, testing).
+Creates and manages a Utho Project. Projects help you organize cloud resources and collaborate with team members across different environments.
 
 ## Example Usage
 
-### Basic project
-
-```hcl
-resource "utho_project" "dev" {
-  name        = "my-app-dev"
-  environment = "development"
-  description = "Development environment for my app"
-}
-
-output "project_id" {
-  value = utho_project.dev.id
-}
-```
-
-### Multiple environment projects
-
-```hcl
-resource "utho_project" "dev" {
-  name        = "my-app-dev"
-  environment = "development"
-}
-
-resource "utho_project" "staging" {
-  name        = "my-app-staging"
-  environment = "staging"
-}
-
-resource "utho_project" "prod" {
-  name        = "my-app-prod"
-  environment = "production"
-}
-```
-
-### Project with members
-
 ```hcl
 resource "utho_project" "main" {
-  name        = "production"
+  name        = "my-app"
+  description = "Production application project"
   environment = "production"
-  description = "Main production project"
-}
-
-resource "utho_project_member" "devops" {
-  project_id = utho_project.main.id
-  user_id    = 785755
-  role_id    = 2
 }
 ```
 
@@ -64,17 +23,21 @@ resource "utho_project_member" "devops" {
 
 | Argument      | Type   | Required | Description |
 |---------------|--------|----------|-------------|
-| `name`        | String | Yes      | Project name. Updatable. |
-| `environment` | String | Yes      | Environment type: `development`, `staging`, `production`, or `testing`. Updatable. |
-| `description` | String | No       | Project description. Updatable. |
+| `name`        | String | Yes      | Project name. Can be updated in place. |
+| `environment` | String | Yes      | Environment: `development`, `staging`, `production`, `testing`. Can be updated in place. |
+| `description` | String | No       | Project description. Can be updated in place. |
 
 ## Attribute Reference
 
-| Attribute       | Type   | Description |
-|-----------------|--------|-------------|
-| `id`            | String | Unique project ID. |
-| `status`        | String | Project status (e.g. `active`). |
-| `is_default`    | Bool   | Whether this is the default project. |
-| `member_count`  | Number | Number of members in the project. |
-| `resource_count`| Number | Number of resources in the project. |
-| `created_at`    | String | Creation timestamp. |
+| Attribute       | Type    | Description |
+|-----------------|---------|-------------|
+| `id`            | String  | Project ID. |
+| `status`        | String  | Project status (`active`). |
+| `is_default`    | Boolean | Whether this is the default project. |
+| `member_count`  | Number  | Number of project members. |
+| `resource_count`| Number  | Number of resources in the project. |
+| `created_at`    | String  | Creation timestamp. |
+
+## Related Resources
+
+- [utho_project_member](project_member) — Add IAM users to this project
