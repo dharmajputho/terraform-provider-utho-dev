@@ -94,16 +94,12 @@ func (r *ContainerRegistryResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
+	// GetContainerRegistry may fail due to permission timing — keep state on error
 	reg, err := r.client.GetContainerRegistry(state.ProjectName.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading container registry", fmt.Sprintf("%s", err))
+	if err != nil || reg == nil {
+		resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 		return
 	}
-	if reg == nil {
-		resp.State.RemoveResource(ctx)
-		return
-	}
-
 	state.CreatedAt = types.StringValue(reg.CreatedAt)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
