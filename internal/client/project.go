@@ -15,7 +15,6 @@ type ProjectCreateRequest struct {
 
 type ProjectMemberRequest struct {
 	UserID int `json:"userid"`
-	RoleID int `json:"role_id"`
 }
 
 // ── Response structs ──────────────────────────────────────────────────────
@@ -106,9 +105,9 @@ func (c *Client) DeleteProject(projectID string) error {
 	return nil
 }
 
-func (c *Client) AddProjectMember(projectID string, userID int, roleID int) error {
+func (c *Client) AddProjectMember(projectID string, userID int) error {
 	respBytes, err := c.Post(fmt.Sprintf("/projects/%s/members/add", projectID),
-		&ProjectMemberRequest{UserID: userID, RoleID: roleID})
+		&ProjectMemberRequest{UserID: userID})
 	if err != nil {
 		return fmt.Errorf("failed to add project member: %w", err)
 	}

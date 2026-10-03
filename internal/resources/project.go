@@ -193,7 +193,6 @@ type ProjectMemberModel struct {
 	ID        types.String `tfsdk:"id"`
 	ProjectID types.String `tfsdk:"project_id"`
 	UserID    types.Int64  `tfsdk:"user_id"`
-	RoleID    types.Int64  `tfsdk:"role_id"`
 }
 
 func NewProjectMemberResource() resource.Resource { return &ProjectMemberResource{} }
@@ -247,11 +246,7 @@ func (r *ProjectMemberResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	err := r.client.AddProjectMember(
-		plan.ProjectID.ValueString(),
-		int(plan.UserID.ValueInt64()),
-		int(plan.RoleID.ValueInt64()),
-	)
+	err := r.client.AddProjectMember(plan.ProjectID.ValueString(), int(plan.UserID.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Error adding project member", fmt.Sprintf("%s", err))
 		return
@@ -276,7 +271,7 @@ func (r *ProjectMemberResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.AddError("Error removing project member for update", fmt.Sprintf("%s", err))
 		return
 	}
-	if err := r.client.AddProjectMember(plan.ProjectID.ValueString(), int(plan.UserID.ValueInt64()), int(plan.RoleID.ValueInt64())); err != nil {
+	if err := r.client.AddProjectMember(plan.ProjectID.ValueString(), int(plan.UserID.ValueInt64())); err != nil {
 		resp.Diagnostics.AddError("Error re-adding project member with new role", fmt.Sprintf("%s", err))
 		return
 	}
