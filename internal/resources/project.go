@@ -219,10 +219,6 @@ func (r *ProjectMemberResource) Schema(_ context.Context, _ resource.SchemaReque
 				Description:   "IAM user ID to add as member.",
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.RequiresReplace()},
 			},
-			"role_id": schema.Int64Attribute{
-				Required:    true,
-				Description: "Role ID: 1 = Owner, 2 = Member, 3 = Viewer.",
-			},
 		},
 	}
 }
