@@ -627,3 +627,15 @@ func (c *Client) DeleteVPCPeering(peeringID string) error {
 	}
 	return nil
 }
+
+func (c *Client) ListVPCPeering() ([]VPCPeeringInstance, error) {
+	respBytes, err := c.Get("/vpc/peering")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list VPC peering: %w", err)
+	}
+	var resp VPCPeeringListResponse
+	if err := json.Unmarshal(respBytes, &resp); err != nil {
+		return nil, fmt.Errorf("failed to parse list VPC peering response: %w", err)
+	}
+	return resp.Data, nil
+}

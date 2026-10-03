@@ -76,6 +76,25 @@ func (r *VPCPeeringResource) Create(ctx context.Context, req resource.CreateRequ
 }
 
 func (r *VPCPeeringResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state VPCPeeringModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	peerings, err := r.client.ListVPCPeering()
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading VPC peering", fmt.Sprintf("%s", err))
+		return
+	}
+	for _, p := range peerings {
+		if p.ID == state.ID.ValueString() {
+			state.Status = types.StringValue(p.Status)
+			state.Name = types.StringValue(p.Name)
+			resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+			return
+		}
+	}
+	resp.State.RemoveResource(ctx)
 }
 
 func (r *VPCPeeringResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
