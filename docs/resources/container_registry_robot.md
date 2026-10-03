@@ -2,34 +2,32 @@
 page_title: "Container Registry Robot - Utho"
 subcategory: "Container Registry"
 description: |-
-  Create and manage robot accounts for a Utho Container Registry.
+  Create robot accounts for automated access to a Utho Container Registry.
 ---
 
 # utho_container_registry_robot
 
-Creates and manages a robot account for a Utho Container Registry. Robot accounts are service accounts used for automated access (CI/CD pipelines, deployment scripts) with fine-grained pull/push permissions and an expiry date.
-
-~> **Important:** The `secret` is only shown at creation time. Save it immediately.
+Creates a robot account for automated CI/CD access to a container registry. Robot accounts have scoped permissions and optional expiry.
 
 ## Example Usage
-
-### CI/CD robot with pull and push access
 
 ```hcl
 resource "utho_container_registry_robot" "ci" {
   project_name = utho_container_registry.main.project_name
-  name         = "ci-deploy"
-  description  = "GitHub Actions deployment robot"
-  duration     = 365
+  name         = "ci-robot"
+  description  = "CI/CD pipeline robot"
+  duration     = 90
 
   access = [
-    { resource = "repository", action = "pull" },
-    { resource = "repository", action = "push" },
+    {
+      resource = "repository"
+      action   = "push"
+    },
+    {
+      resource = "repository"
+      action   = "pull"
+    }
   ]
-}
-
-output "robot_name" {
-  value = utho_container_registry_robot.ci.name
 }
 
 output "robot_secret" {
@@ -38,42 +36,27 @@ output "robot_secret" {
 }
 ```
 
-### Read-only robot for production pulls
-
-```hcl
-resource "utho_container_registry_robot" "prod_pull" {
-  project_name = utho_container_registry.main.project_name
-  name         = "prod-puller"
-  description  = "Production read-only access"
-  duration     = 90
-
-  access = [
-    { resource = "repository", action = "pull" },
-  ]
-}
-```
-
 ## Argument Reference
 
 | Argument       | Type   | Required | Description |
 |----------------|--------|----------|-------------|
-| `project_name` | String | Yes      | Registry project name. Changing this forces a new resource. |
-| `name`         | String | Yes      | Robot account name. Changing this forces a new resource. |
-| `duration`     | Number | Yes      | Token validity in days. Changing this forces a new resource. |
-| `access`       | List   | Yes      | Access permissions. See [Access Block](#access-block). Changing this forces a new resource. |
-| `description`  | String | No       | Robot account description. Changing this forces a new resource. |
+| `project_name` | String | Yes      | Registry project name. Changing forces new resource. |
+| `name`         | String | Yes      | Robot account name. Changing forces new resource. |
+| `description`  | String | No       | Description of the robot account. |
+| `duration`     | Number | Yes      | Token validity in days. Changing forces new resource. |
+| `access`       | List   | Yes      | List of access permissions. |
 
-### Access Block
+### access block
 
 | Argument   | Type   | Required | Description |
 |------------|--------|----------|-------------|
 | `resource` | String | Yes      | Resource type: `repository`. |
-| `action`   | String | Yes      | Action: `pull` or `push`. |
+| `action`   | String | Yes      | Action: `push`, `pull`, `delete`. |
 
 ## Attribute Reference
 
 | Attribute    | Type   | Description |
 |--------------|--------|-------------|
-| `id`         | String | Unique robot account ID. |
-| `secret`     | String | Robot account secret for authentication. **Sensitive — shown only at creation time.** |
-| `expires_at` | Number | Expiry timestamp (Unix). |
+| `id`         | String | Robot account ID. |
+| `secret`     | String | Robot secret token (sensitive). |
+| `expires_at` | Number | Expiry timestamp. |
