@@ -7,77 +7,48 @@ description: |-
 
 # utho_route
 
-Creates and manages an individual route inside a Utho route table.
-Each route defines where traffic for a specific destination CIDR
-should be directed.
+Creates and manages an individual route inside a Utho route table. Routes direct traffic based on destination CIDR blocks to various targets such as internet gateways, subnets, IPSec tunnels, or peering connections.
 
 ## Example Usage
 
-### Internet gateway route
+### Internet Gateway route
 
 ```hcl
 resource "utho_route" "internet" {
   route_table_id         = utho_route_table.main.id
-  destination_cidr_block = "0.0.0.0/0"
+  destination_cidr_block = "10.0.0.0/16"
   route_type             = "igw"
   target                 = "igw"
 }
 ```
 
-### Local VPC route
+### Local subnet route
 
 ```hcl
-resource "utho_route" "local" {
+resource "utho_route" "internal" {
   route_table_id         = utho_route_table.main.id
-  destination_cidr_block = "10.0.0.0/16"
+  destination_cidr_block = "172.20.0.0/24"
   route_type             = "local"
-  target                 = "local"
-}
-```
-
-### Multiple routes in one route table
-
-```hcl
-resource "utho_route_table" "main" {
-  name   = "main-routes"
-  vpc_id = utho_vpc.main.id
-  dcslug = "inmumbaizone2"
-}
-
-resource "utho_route" "internet" {
-  route_table_id         = utho_route_table.main.id
-  destination_cidr_block = "0.0.0.0/0"
-  route_type             = "igw"
-  target                 = "igw"
-}
-
-resource "utho_route" "vpc_local" {
-  route_table_id         = utho_route_table.main.id
-  destination_cidr_block = "10.0.0.0/16"
-  route_type             = "local"
-  target                 = "local"
+  target                 = "<subnet-id>"
 }
 ```
 
 ## Argument Reference
 
-| Argument                 | Type   | Required | Description |
-|--------------------------|--------|----------|-------------|
-| `route_table_id`         | String | Yes      | Route table ID to add this route to. Changing this forces a new resource. |
-| `destination_cidr_block` | String | Yes      | Destination CIDR block (e.g. `0.0.0.0/0`, `10.0.0.0/16`). |
-| `route_type`             | String | Yes      | Route type (e.g. `igw`, `local`). |
-| `target`                 | String | Yes      | Route target (e.g. `igw`, `local`). |
+| Argument                | Type   | Required | Description |
+|-------------------------|--------|----------|-------------|
+| `route_table_id`        | String | Yes      | Route table ID. Changing forces new resource. |
+| `destination_cidr_block`| String | Yes      | Destination CIDR block. Can be updated in place. |
+| `route_type`            | String | Yes      | Route type: `igw`, `local`, `ipsec`, `peering`. Can be updated in place. |
+| `target`                | String | Yes      | Route target. For `igw` use `igw`, for `local` use subnet ID, for others use resource ID. Can be updated in place. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Unique route ID (UUID). |
+| `id`      | String | Route ID (UUID). |
 
 ## Notes
 
-- Changing `route_table_id` destroys and recreates the route.
-- Changing `destination_cidr_block`, `route_type`, or `target`
-  updates the route in place.
-- Multiple routes in the same route table must have unique
-  `destination_cidr_block` values.
+- Destroy routes before destroying the route table.
+- `destination_cidr_block`, `route_type`, and `target` can all be updated in place.
