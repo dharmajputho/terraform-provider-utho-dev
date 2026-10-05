@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Snapshots - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_snapshots"
+subcategory: "Cloud Instances"
 description: |-
   List available snapshots in your Utho account.
 ---

@@ -1,5 +1,5 @@
 ---
-page_title: "Container Registry Robot - Utho"
+page_title: "Utho: utho_container_registry_robot"
 subcategory: "Container Registry"
 description: |-
   Create robot accounts for automated access to a Utho Container Registry.

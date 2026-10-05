@@ -1,5 +1,5 @@
 ---
-page_title: "Container Registry Webhook - Utho"
+page_title: "Utho: utho_container_registry_webhook"
 subcategory: "Container Registry"
 description: |-
   Create webhooks for Utho Container Registry events.

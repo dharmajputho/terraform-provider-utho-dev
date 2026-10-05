@@ -1,6 +1,6 @@
 ---
-page_title: "Kubernetes Config Data Source - Utho"
-subcategory: "Compute / Kubernetes"
+page_title: "Utho: utho_kubernetes_config"
+subcategory: "Kubernetes"
 description: |-
   Fetch the kubeconfig file for a Utho Kubernetes cluster.
 ---

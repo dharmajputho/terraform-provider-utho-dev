@@ -1,6 +1,6 @@
 ---
-page_title: "Kubernetes Cluster - Utho"
-subcategory: "Compute / Kubernetes"
+page_title: "Utho: utho_kubernetes"
+subcategory: "Kubernetes"
 description: |-
   Create and manage Utho Managed Kubernetes clusters.
 ---

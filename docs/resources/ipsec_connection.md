@@ -1,6 +1,6 @@
 ---
-page_title: "IPSec Connection - Utho"
-subcategory: "Networking / VPN"
+page_title: "Utho: utho_ipsec_connection"
+subcategory: "VPN (IPSec)"
 description: |-
   Pair two Utho IPSec tunnels to establish a site-to-site VPN connection.
 ---

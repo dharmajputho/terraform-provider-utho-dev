@@ -1,6 +1,6 @@
 ---
-page_title: "Subnet - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_subnet"
+subcategory: "VPC"
 description: |-
   Create and manage subnets inside a Utho VPC.
 ---

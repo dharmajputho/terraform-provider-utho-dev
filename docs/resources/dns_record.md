@@ -1,6 +1,6 @@
 ---
-page_title: "DNS Record - Utho"
-subcategory: "Networking / DNS"
+page_title: "Utho: utho_dns_record"
+subcategory: "DNS"
 description: |-
   Create and manage DNS records inside a Utho DNS zone.
 ---
@@ -109,25 +109,36 @@ resource "utho_dns_zone" "main" {
   domain = "myapp.com"
 }
 
-resource "utho_dns_record" "root"  {
-  domain = utho_dns_zone.main.domain
-  type = "A"; hostname = "@"; value = "203.0.113.10"; ttl = "300"
+resource "utho_dns_record" "root" {
+  domain   = utho_dns_zone.main.domain
+  type     = "A"
+  hostname = "@"
+  value    = "203.0.113.10"
+  ttl      = "300"
 }
 
 resource "utho_dns_record" "www" {
-  domain = utho_dns_zone.main.domain
-  type = "CNAME"; hostname = "www"; value = "myapp.com."; ttl = "3600"
+  domain   = utho_dns_zone.main.domain
+  type     = "CNAME"
+  hostname = "www"
+  value    = "myapp.com."
+  ttl      = "3600"
 }
 
 resource "utho_dns_record" "mx" {
-  domain = utho_dns_zone.main.domain
-  type = "MX"; hostname = "@"; value = "mail.myapp.com."; ttl = "3600"
+  domain   = utho_dns_zone.main.domain
+  type     = "MX"
+  hostname = "@"
+  value    = "mail.myapp.com."
+  ttl      = "3600"
 }
 
 resource "utho_dns_record" "spf" {
-  domain = utho_dns_zone.main.domain
-  type = "TXT"; hostname = "@"
-  value = "v=spf1 include:_spf.google.com ~all"; ttl = "3600"
+  domain   = utho_dns_zone.main.domain
+  type     = "TXT"
+  hostname = "@"
+  value    = "v=spf1 include:_spf.google.com ~all"
+  ttl      = "3600"
 }
 ```
 

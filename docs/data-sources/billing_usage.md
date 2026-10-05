@@ -1,5 +1,5 @@
 ---
-page_title: "Billing Usage - Utho"
+page_title: "Utho: utho_billing_usage"
 subcategory: "Billing"
 description: |-
   Retrieve current billing cycle usage breakdown by resource category.

@@ -1,6 +1,6 @@
 ---
-page_title: "Elastic IP - Utho"
-subcategory: "Networking / Elastic IP"
+page_title: "Utho: utho_elastic_ip"
+subcategory: "Elastic IP"
 description: |-
   Allocate and manage Elastic IPs on Utho Cloud.
 ---
@@ -63,8 +63,13 @@ resource "utho_elastic_ip" "web" {
 
 ```hcl
 # 1. Keep the elastic IP pointing to v1 while deploying v2
-resource "utho_cloud" "web_v1" { ... }
-resource "utho_cloud" "web_v2" { ... }
+resource "utho_cloud" "web_v1" {
+  # ... instance configuration ...
+}
+
+resource "utho_cloud" "web_v2" {
+  # ... instance configuration ...
+}
 
 resource "utho_elastic_ip" "web" {
   dcslug       = "inmumbaizone2"

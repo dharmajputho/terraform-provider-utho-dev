@@ -1,6 +1,6 @@
 ---
-page_title: "Auto Scaling - Utho"
-subcategory: "Compute / Auto Scaling"
+page_title: "Utho: utho_autoscaling"
+subcategory: "Auto Scaling"
 description: |-
   Create and manage Utho Auto Scaling groups.
 ---

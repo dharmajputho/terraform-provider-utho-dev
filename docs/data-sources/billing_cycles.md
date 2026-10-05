@@ -1,6 +1,6 @@
 ---
-page_title: "Billing Cycles - Utho"
-subcategory: "Account / IAM"
+page_title: "Utho: utho_billing_cycles"
+subcategory: "Billing"
 description: |-
   List available billing cycles for a Utho product.
 ---

@@ -1,5 +1,5 @@
 ---
-page_title: "Container Registry Immutable Rule - Utho"
+page_title: "Utho: utho_container_registry_immutable_rule"
 subcategory: "Container Registry"
 description: |-
   Create immutable tag rules for a Utho Container Registry.

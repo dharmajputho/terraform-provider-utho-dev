@@ -1,6 +1,6 @@
 ---
-page_title: "Database User - Utho"
-subcategory: "Database / DBaaS"
+page_title: "Utho: utho_database_user"
+subcategory: "Database (DBaaS)"
 description: |-
   Create and manage users inside a Utho database cluster.
 ---

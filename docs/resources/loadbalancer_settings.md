@@ -1,6 +1,6 @@
 ---
-page_title: "Load Balancer Settings - Utho"
-subcategory: "Networking / Load Balancing"
+page_title: "Utho: utho_loadbalancer_settings"
+subcategory: "Load Balancing"
 description: |-
   Configure advanced settings for a Utho Load Balancer.
 ---

@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Images - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_images"
+subcategory: "Cloud Instances"
 description: |-
   List available OS images for Utho Cloud instances.
 ---

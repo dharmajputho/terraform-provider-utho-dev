@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud VPC Attachment - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_vpc"
+subcategory: "Cloud Instances"
 description: |-
   Attach or detach a VPC subnet from a Utho Cloud instance.
 ---

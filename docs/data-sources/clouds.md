@@ -1,6 +1,6 @@
 ---
-page_title: "Clouds - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_clouds"
+subcategory: "Cloud Instances"
 description: |-
   List all cloud instances in your Utho account.
 ---

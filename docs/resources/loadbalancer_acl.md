@@ -1,6 +1,6 @@
 ---
-page_title: "Load Balancer ACL Rule - Utho"
-subcategory: "Networking / Load Balancing"
+page_title: "Utho: utho_loadbalancer_acl"
+subcategory: "Load Balancing"
 description: |-
   Add and manage ACL rules on a Utho Load Balancer frontend.
 ---

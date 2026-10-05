@@ -1,6 +1,6 @@
 ---
-page_title: "Object Storage Access Key - Utho"
-subcategory: "Storage / Object Storage"
+page_title: "Utho: utho_object_storage_key"
+subcategory: "Object Storage"
 description: |-
   Create and manage access keys for Utho Object Storage.
 ---

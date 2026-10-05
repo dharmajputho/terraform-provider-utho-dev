@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Firewall Attachment - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_firewall"
+subcategory: "Cloud Instances"
 description: |-
   Attach or detach a security group from a Utho Cloud instance.
 ---

@@ -1,25 +1,56 @@
 ---
-page_title: "Database Connection Pool - Utho"
-subcategory: "Database / DBaaS"
+page_title: "Utho: utho_database_db"
+subcategory: "Database (DBaaS)"
 description: |-
-  Create and manage connection pools for a Utho database cluster.
+  Create and manage logical databases inside a Utho managed database cluster.
 ---
 
-# utho_database_pool
+# utho_database_db
 
-Creates a connection pool for a Utho database cluster. Connection pooling reduces the overhead of opening and closing database connections, improving performance for high-traffic applications.
+Creates a logical database inside an existing Utho managed database cluster (`utho_database`). Use this to give each application or service its own database on a shared cluster.
+
+Terraform waits for the cluster to finish provisioning before creating the database, so you can create the cluster and its databases in the same `terraform apply`.
 
 ## Example Usage
 
+### Single database
+
 ```hcl
-resource "utho_database_pool" "app" {
+resource "utho_database" "main" {
+  cluster_name  = "production-db"
+  dcslug        = "inmumbaizone2"
+  engine        = "pg"
+  version       = "17"
+  size          = "10151"
+  network_type  = "private"
+  billing       = "monthly"
+  replica_count = "0"
+}
+
+resource "utho_database_db" "app" {
   cluster_id = utho_database.main.id
-  cloud_id   = utho_database.main.cloud_id
-  name       = "app-pool"
-  db         = utho_database_db.app.name
-  user       = utho_database_user.app.name
-  mode       = "transaction"
-  size       = 10
+  name       = "app"
+}
+```
+
+### One database per service
+
+```hcl
+locals {
+  services = ["orders", "payments", "inventory"]
+}
+
+resource "utho_database_db" "service" {
+  for_each   = toset(local.services)
+  cluster_id = utho_database.main.id
+  name       = each.key
+}
+
+resource "utho_database_user" "service" {
+  for_each   = toset(local.services)
+  cluster_id = utho_database.main.id
+  name       = "${each.key}_user"
+  password   = var.db_passwords[each.key]
 }
 ```
 
@@ -27,16 +58,17 @@ resource "utho_database_pool" "app" {
 
 | Argument     | Type   | Required | Description |
 |--------------|--------|----------|-------------|
-| `cluster_id` | String | Yes      | Database cluster ID. Changing this forces a new resource. |
-| `cloud_id`   | String | Yes      | Primary node cloud ID (`utho_database.name.cloud_id`). Changing this forces a new resource. |
-| `name`       | String | Yes      | Pool name. Changing this forces a new resource. |
-| `db`         | String | Yes      | Database name to pool connections for. |
-| `user`       | String | Yes      | Database user for the pool. |
-| `mode`       | String | Yes      | Pooling mode: `transaction`, `session`, or `statement`. |
-| `size`       | Number | Yes      | Maximum number of connections in the pool. |
+| `cluster_id` | String | Yes      | ID of the `utho_database` cluster to create the database in. Changing this forces a new resource. |
+| `name`       | String | Yes      | Database name. Changing this forces a new resource. |
 
 ## Attribute Reference
 
 | Attribute | Type   | Description |
 |-----------|--------|-------------|
-| `id`      | String | Connection pool ID. |
+| `id`      | String | Identifier in the format `{cluster_id}:{name}`. |
+
+## Notes
+
+- Databases cannot be renamed or moved in place. Changing `name` or `cluster_id` destroys the database and creates a new one, which **deletes its data**. Use `lifecycle { prevent_destroy = true }` on production databases.
+- Deleting the parent `utho_database` cluster removes all databases inside it.
+- Import is not currently supported for this resource.

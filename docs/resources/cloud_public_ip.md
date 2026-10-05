@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Public IP - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_public_ip"
+subcategory: "Cloud Instances"
 description: |-
   Assign or release additional public IPs on a Utho Cloud instance.
 ---

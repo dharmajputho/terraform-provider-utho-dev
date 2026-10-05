@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Plans - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_plans"
+subcategory: "Cloud Instances"
 description: |-
   List available plans for Utho Cloud instances.
 ---

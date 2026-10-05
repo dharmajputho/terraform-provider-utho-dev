@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Storage - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_storage"
+subcategory: "Cloud Instances"
 description: |-
   Add general-purpose storage disks to a Utho Cloud instance.
 ---

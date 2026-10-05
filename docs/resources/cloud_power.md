@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Power - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_power"
+subcategory: "Cloud Instances"
 description: |-
   Control the power state of a Utho Cloud instance.
 ---

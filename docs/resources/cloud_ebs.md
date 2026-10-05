@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud EBS - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_ebs"
+subcategory: "Cloud Instances"
 description: |-
   Attach an existing EBS block volume to a Utho Cloud instance.
 ---

@@ -1,5 +1,5 @@
 ---
-page_title: "Alert Contact - Utho"
+page_title: "Utho: utho_alert_contact"
 subcategory: "Monitoring"
 description: |-
   Create and manage alert contacts for Utho monitoring.

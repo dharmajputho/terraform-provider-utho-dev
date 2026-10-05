@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Resize - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_resize"
+subcategory: "Cloud Instances"
 description: |-
   Resize a Utho Cloud instance to a different plan.
 ---

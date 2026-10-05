@@ -1,5 +1,5 @@
 ---
-page_title: "Billing Cost By Project - Utho"
+page_title: "Utho: utho_billing_cost_by_project"
 subcategory: "Billing"
 description: |-
   Retrieve current month cost breakdown by Utho project.

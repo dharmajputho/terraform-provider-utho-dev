@@ -1,5 +1,5 @@
 ---
-page_title: "Alert - Utho"
+page_title: "Utho: utho_alert"
 subcategory: "Monitoring"
 description: |-
   Create and manage monitoring alerts for Utho cloud instances.

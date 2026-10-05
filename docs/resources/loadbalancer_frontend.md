@@ -1,6 +1,6 @@
 ---
-page_title: "Load Balancer Frontend - Utho"
-subcategory: "Networking / Load Balancing"
+page_title: "Utho: utho_loadbalancer_frontend"
+subcategory: "Load Balancing"
 description: |-
   Add and manage frontends on a Utho Load Balancer.
 ---
@@ -99,4 +99,3 @@ resource "utho_loadbalancer_frontend" "tcp" {
 - The LB must be fully ready before this resource can be created — the provider handles this automatically.
 - You can add multiple frontends to a single LB — one per port (e.g. port 80 and port 443).
 - Use `certificate_id = "0"` for HTTP frontends — never leave it empty.
-- Use `data.utho_ssl_certificates` to look up existing certificate IDs by name.

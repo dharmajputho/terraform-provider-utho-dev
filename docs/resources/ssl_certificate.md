@@ -1,6 +1,6 @@
 ---
-page_title: "SSL Certificate - Utho"
-subcategory: "Security"
+page_title: "Utho: utho_ssl_certificate"
+subcategory: "SSL Certificates"
 description: |-
   Upload and manage SSL certificates on Utho Cloud.
 ---

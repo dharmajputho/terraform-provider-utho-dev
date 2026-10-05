@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud DC Zones - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_dczones"
+subcategory: "Cloud Instances"
 description: |-
   List all available data center zones for Utho Cloud instances.
 ---

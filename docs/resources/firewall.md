@@ -1,6 +1,6 @@
 ---
-page_title: "Security Group - Utho"
-subcategory: "Networking / Security"
+page_title: "Utho: utho_firewall"
+subcategory: "Security Groups"
 description: |-
   Create and manage Utho Security Groups (firewall rules for cloud instances).
 ---

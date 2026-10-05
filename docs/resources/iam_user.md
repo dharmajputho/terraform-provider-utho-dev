@@ -1,5 +1,5 @@
 ---
-page_title: "IAM User - Utho"
+page_title: "Utho: utho_iam_user"
 subcategory: "IAM"
 description: |-
   Create and manage IAM sub-users in your Utho account.

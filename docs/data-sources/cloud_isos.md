@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud ISOs - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_isos"
+subcategory: "Cloud Instances"
 description: |-
   List available ISOs in your Utho account.
 ---

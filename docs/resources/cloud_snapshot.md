@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Snapshot - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_snapshot"
+subcategory: "Cloud Instances"
 description: |-
   Create and manage snapshots of Utho Cloud instances.
 ---

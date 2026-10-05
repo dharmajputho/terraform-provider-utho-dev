@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud ISO - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud_iso"
+subcategory: "Cloud Instances"
 description: |-
   Mount or unmount an ISO on a Utho Cloud instance.
 ---

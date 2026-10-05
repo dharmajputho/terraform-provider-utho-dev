@@ -1,6 +1,6 @@
 ---
-page_title: "API Token - Utho"
-subcategory: "Account / IAM"
+page_title: "Utho: utho_api_token"
+subcategory: "IAM"
 description: |-
   Create and manage Utho API tokens for programmatic access.
 ---

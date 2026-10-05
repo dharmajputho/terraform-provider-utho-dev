@@ -1,6 +1,6 @@
 ---
-page_title: "Cloud Instance - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_cloud"
+subcategory: "Cloud Instances"
 description: |-
   Create and manage Utho Cloud instances (virtual machines).
 ---
@@ -282,9 +282,14 @@ resource "utho_ssh_key" "deploy" {
 
 resource "utho_firewall" "web" { name = "web-sg" }
 resource "utho_firewall_rule" "http" {
-  firewall_id = utho_firewall.web.id
-  type = "incoming"; service = "HTTP"; protocol = "tcp"
-  port = "80"; port_range = "80"; addresses = "0.0.0.0/0"; source_range = "0.0.0.0/0"
+  firewall_id  = utho_firewall.web.id
+  type         = "incoming"
+  service      = "HTTP"
+  protocol     = "tcp"
+  port         = "80"
+  port_range   = "80"
+  addresses    = "0.0.0.0/0"
+  source_range = "0.0.0.0/0"
 }
 
 resource "utho_cloud" "web" {

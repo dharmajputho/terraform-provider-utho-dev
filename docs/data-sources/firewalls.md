@@ -1,6 +1,6 @@
 ---
-page_title: "Firewalls - Utho"
-subcategory: "Networking / Security"
+page_title: "Utho: utho_firewalls"
+subcategory: "Security Groups"
 description: |-
   List all security groups in your Utho account.
 ---

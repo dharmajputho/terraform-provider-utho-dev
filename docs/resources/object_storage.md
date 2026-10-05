@@ -1,6 +1,6 @@
 ---
-page_title: "Object Storage - Utho"
-subcategory: "Storage / Object Storage"
+page_title: "Utho: utho_object_storage"
+subcategory: "Object Storage"
 description: |-
   Create and manage Utho Object Storage buckets (S3-compatible).
 ---

@@ -1,6 +1,6 @@
 ---
-page_title: "SSH Keys - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_ssh_keys"
+subcategory: "Cloud Instances"
 description: |-
   List all SSH keys in your Utho account.
 ---

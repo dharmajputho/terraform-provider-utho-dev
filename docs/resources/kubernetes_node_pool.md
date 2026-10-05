@@ -1,6 +1,6 @@
 ---
-page_title: "Kubernetes Node Pool - Utho"
-subcategory: "Compute / Kubernetes"
+page_title: "Utho: utho_kubernetes_node_pool"
+subcategory: "Kubernetes"
 description: |-
   Add and manage node pools in a Utho Kubernetes cluster.
 ---

@@ -1,5 +1,5 @@
 ---
-page_title: "Project Member - Utho"
+page_title: "Utho: utho_project_member"
 subcategory: "Projects"
 description: |-
   Add IAM sub-users as members to a Utho Project.

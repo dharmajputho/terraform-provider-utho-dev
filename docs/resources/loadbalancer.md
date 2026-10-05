@@ -1,6 +1,6 @@
 ---
-page_title: "Load Balancer - Utho"
-subcategory: "Networking / Load Balancing"
+page_title: "Utho: utho_loadbalancer"
+subcategory: "Load Balancing"
 description: |-
   Create and manage Utho Load Balancers.
 ---

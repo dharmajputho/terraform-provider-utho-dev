@@ -1,6 +1,6 @@
 ---
-page_title: "Auto Scaling Schedule - Utho"
-subcategory: "Compute / Auto Scaling"
+page_title: "Utho: utho_autoscaling_schedule"
+subcategory: "Auto Scaling"
 description: |-
   Manage scheduled scaling policies for a Utho Auto Scaling group.
 ---

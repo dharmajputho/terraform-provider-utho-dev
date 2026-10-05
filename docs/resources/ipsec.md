@@ -1,6 +1,6 @@
 ---
-page_title: "IPSec Tunnel - Utho"
-subcategory: "Networking / VPN"
+page_title: "Utho: utho_ipsec"
+subcategory: "VPN (IPSec)"
 description: |-
   Create and manage Utho IPSec site-to-site VPN tunnels.
 ---

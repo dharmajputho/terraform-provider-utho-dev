@@ -1,6 +1,6 @@
 ---
-page_title: "Object Storage Permission - Utho"
-subcategory: "Storage / Object Storage"
+page_title: "Utho: utho_object_storage_permission"
+subcategory: "Object Storage"
 description: |-
   Grant permissions on a Utho Object Storage bucket to an access key.
 ---

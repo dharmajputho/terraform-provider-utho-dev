@@ -1,6 +1,6 @@
 ---
-page_title: "Load Balancer Backend - Utho"
-subcategory: "Networking / Load Balancing"
+page_title: "Utho: utho_loadbalancer_backend"
+subcategory: "Load Balancing"
 description: |-
   Add and manage backends on a Utho Load Balancer frontend.
 ---

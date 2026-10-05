@@ -1,6 +1,6 @@
 ---
-page_title: "VPC - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_vpc"
+subcategory: "VPC"
 description: |-
   Create and manage Utho Virtual Private Cloud (VPC) networks.
 ---
@@ -70,17 +70,26 @@ resource "utho_vpc" "main" {
   planid  = "1008"
 }
 
-resource "utho_subnet" "public"  {
-  name = "public";  vpc_id = utho_vpc.main.id
-  network = "10.0.1.0"; size = 24; type = "public"; assign_publicip = 1
+resource "utho_subnet" "public" {
+  name            = "public"
+  vpc_id          = utho_vpc.main.id
+  network         = "10.0.1.0"
+  size            = 24
+  type            = "public"
+  assign_publicip = 1
 }
 resource "utho_subnet" "private" {
-  name = "private"; vpc_id = utho_vpc.main.id
-  network = "10.0.2.0"; size = 24; type = "private"; assign_publicip = 0
+  name            = "private"
+  vpc_id          = utho_vpc.main.id
+  network         = "10.0.2.0"
+  size            = 24
+  type            = "private"
+  assign_publicip = 0
 }
 
 resource "utho_elastic_ip" "nat" {
-  dcslug = "inmumbaizone2"; billingcycle = "monthly"
+  dcslug       = "inmumbaizone2"
+  billingcycle = "monthly"
 }
 
 resource "utho_nat_gateway" "main" {

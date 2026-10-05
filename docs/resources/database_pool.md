@@ -1,6 +1,6 @@
 ---
-page_title: "Database Connection Pool - Utho"
-subcategory: "Database / DBaaS"
+page_title: "Utho: utho_database_pool"
+subcategory: "Database (DBaaS)"
 description: |-
   Create and manage connection pools for a Utho database cluster.
 ---

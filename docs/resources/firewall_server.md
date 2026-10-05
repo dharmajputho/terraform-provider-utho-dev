@@ -1,6 +1,6 @@
 ---
-page_title: "Security Group Server Attachment - Utho"
-subcategory: "Networking / Security"
+page_title: "Utho: utho_firewall_server"
+subcategory: "Security Groups"
 description: |-
   Attach or detach a cloud instance from a Utho Security Group.
 ---

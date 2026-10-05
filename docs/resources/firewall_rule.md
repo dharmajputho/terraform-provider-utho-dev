@@ -1,6 +1,6 @@
 ---
-page_title: "Security Group Rule - Utho"
-subcategory: "Networking / Security"
+page_title: "Utho: utho_firewall_rule"
+subcategory: "Security Groups"
 description: |-
   Add and manage rules in a Utho Security Group.
 ---

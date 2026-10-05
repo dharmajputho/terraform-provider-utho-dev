@@ -1,5 +1,5 @@
 ---
-page_title: "Project - Utho"
+page_title: "Utho: utho_project"
 subcategory: "Projects"
 description: |-
   Create and manage Utho Projects to organize resources and team members.

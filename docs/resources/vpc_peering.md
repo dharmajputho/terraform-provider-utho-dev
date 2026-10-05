@@ -1,6 +1,6 @@
 ---
-page_title: "VPC Peering - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_vpc_peering"
+subcategory: "VPC"
 description: |-
   Create and manage VPC peering connections between two Utho VPCs.
 ---

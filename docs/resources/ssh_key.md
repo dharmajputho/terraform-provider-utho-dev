@@ -1,6 +1,6 @@
 ---
-page_title: "SSH Key - Utho"
-subcategory: "Compute / Cloud Instances"
+page_title: "Utho: utho_ssh_key"
+subcategory: "Cloud Instances"
 description: |-
   Import and manage SSH public keys on Utho Cloud.
 ---

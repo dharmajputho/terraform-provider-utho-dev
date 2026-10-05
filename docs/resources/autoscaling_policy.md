@@ -1,6 +1,6 @@
 ---
-page_title: "Auto Scaling Policy - Utho"
-subcategory: "Compute / Auto Scaling"
+page_title: "Utho: utho_autoscaling_policy"
+subcategory: "Auto Scaling"
 description: |-
   Create and manage scaling policies for a Utho Auto Scaling group.
 ---

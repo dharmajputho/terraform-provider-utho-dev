@@ -1,6 +1,6 @@
 ---
-page_title: "Route Table - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_route_table"
+subcategory: "VPC"
 description: |-
   Create and manage route tables for Utho VPCs.
 ---

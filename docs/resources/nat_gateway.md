@@ -1,6 +1,6 @@
 ---
-page_title: "NAT Gateway - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_nat_gateway"
+subcategory: "VPC"
 description: |-
   Create and manage NAT Gateways for Utho VPC subnets.
 ---

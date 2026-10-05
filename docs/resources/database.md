@@ -1,6 +1,6 @@
 ---
-page_title: "Database Cluster - Utho"
-subcategory: "Database / DBaaS"
+page_title: "Utho: utho_database"
+subcategory: "Database (DBaaS)"
 description: |-
   Create and manage Utho managed database clusters.
 ---

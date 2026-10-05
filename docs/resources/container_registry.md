@@ -1,5 +1,5 @@
 ---
-page_title: "Container Registry - Utho"
+page_title: "Utho: utho_container_registry"
 subcategory: "Container Registry"
 description: |-
   Create and manage Utho Container Registries for storing Docker images.

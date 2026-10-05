@@ -1,6 +1,6 @@
 ---
-page_title: "VPCs - Utho"
-subcategory: "Networking / VPC"
+page_title: "Utho: utho_vpcs"
+subcategory: "VPC"
 description: |-
   List all VPCs and their subnets in your Utho account.
 ---

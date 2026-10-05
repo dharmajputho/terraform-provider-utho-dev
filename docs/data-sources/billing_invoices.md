@@ -1,5 +1,5 @@
 ---
-page_title: "Billing Invoices - Utho"
+page_title: "Utho: utho_billing_invoices"
 subcategory: "Billing"
 description: |-
   Retrieve all billing invoices for your Utho account.

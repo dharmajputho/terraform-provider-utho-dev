@@ -1,6 +1,6 @@
 ---
-page_title: "DNS Zone - Utho"
-subcategory: "Networking / DNS"
+page_title: "Utho: utho_dns_zone"
+subcategory: "DNS"
 description: |-
   Create and manage public DNS zones on Utho.
 ---
