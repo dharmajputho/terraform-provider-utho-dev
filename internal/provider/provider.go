@@ -148,8 +148,11 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		datasources.NewSSHKeysDataSource,
 		datasources.NewVPCSubnetsDataSource,
 		datasources.NewBillingCyclesDataSource,
-		datasources.NewDatabasePlansDataSource, // data.utho_database_plans
-		datasources.NewAutoScalingsDataSource,  // data.utho_autoscalings
-		datasources.NewTargetGroupsDataSource,  // data.utho_target_groups
+		datasources.NewDatabasePlansDataSource,        // data.utho_database_plans
+		datasources.NewAutoScalingsDataSource,         // data.utho_autoscalings
+		datasources.NewTargetGroupsDataSource,         // data.utho_target_groups
+		datasources.NewBillingUsageDataSource,         // data.utho_billing_usage
+		datasources.NewBillingInvoicesDataSource,      // data.utho_billing_invoices
+		datasources.NewBillingCostByProjectDataSource, // data.utho_billing_cost_by_project
 	}
 }
