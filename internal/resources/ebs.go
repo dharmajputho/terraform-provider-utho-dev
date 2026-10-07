@@ -164,6 +164,12 @@ func (r *EBSResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	plan.Status = state.Status
 	plan.CloudID = state.CloudID
 	plan.CreatedAt = state.CreatedAt
+	// Refresh from API to get latest values
+	if ebs, err2 := r.client.GetEBS(state.ID.ValueString()); err2 == nil && ebs != nil {
+		plan.Status = types.StringValue(ebs.Status)
+		plan.CloudID = types.StringValue(ebs.CloudID)
+		// Keep name from plan - API may return stale data
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
