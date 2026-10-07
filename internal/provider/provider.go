@@ -130,6 +130,8 @@ func (p *uthoProvider) Resources(_ context.Context) []func() resource.Resource {
 		resources.NewRegistryRobotResource,           // utho_container_registry_robot
 		resources.NewRegistryWebhookResource,         // utho_container_registry_webhook
 		resources.NewRegistryImmutableRuleResource,   // utho_container_registry_immutable_rule
+		resources.NewEBSResource,                     // utho_ebs
+		resources.NewEBSAttachmentResource,           // utho_ebs_attachment
 
 	}
 }
