@@ -119,7 +119,7 @@ func (r *EBSResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	state.Name = types.StringValue(ebs.Name)
+	// Keep name from state - API may return stale name after update
 	state.Status = types.StringValue(ebs.Status)
 	state.CloudID = types.StringValue(ebs.CloudID)
 	state.CreatedAt = types.StringValue(ebs.CreatedAt)
