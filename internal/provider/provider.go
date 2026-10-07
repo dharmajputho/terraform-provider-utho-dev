@@ -156,5 +156,6 @@ func (p *uthoProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		datasources.NewBillingUsageDataSource,         // data.utho_billing_usage
 		datasources.NewBillingInvoicesDataSource,      // data.utho_billing_invoices
 		datasources.NewBillingCostByProjectDataSource, // data.utho_billing_cost_by_project
+		datasources.NewEBSDCZonesDataSource,           // data.utho_ebs_dczones
 	}
 }

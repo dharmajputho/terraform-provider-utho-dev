@@ -1,6 +1,6 @@
 ---
 page_title: "EBS Volume - Utho"
-subcategory: "Storage / EBS"
+subcategory: "Elastic Block Storage"
 description: |-
   Create and manage Utho Elastic Block Storage (EBS) volumes.
 ---

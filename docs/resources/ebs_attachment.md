@@ -1,6 +1,6 @@
 ---
 page_title: "EBS Attachment - Utho"
-subcategory: "Storage / EBS"
+subcategory: "Elastic Block Storage"
 description: |-
   Attach a Utho EBS volume to a cloud instance.
 ---
