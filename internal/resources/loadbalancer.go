@@ -363,8 +363,8 @@ func (r *LBACLResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"loadbalancer_id": schema.StringAttribute{Required: true, Description: "Load balancer ID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"frontend_id":     schema.StringAttribute{Required: true, Description: "Frontend ID to attach this ACL rule to."},
 			"name":            schema.StringAttribute{Required: true, Description: "ACL rule name."},
-			"condition_type":  schema.StringAttribute{Required: true, Description: "Condition type: host, url_path, url_path_regex, http_method, http_user_agent, http_referer."},
-			"value":           schema.StringAttribute{Required: true, Description: "ACL rule value as JSON string."},
+			"condition_type":  schema.StringAttribute{Required: true, Description: "ACL condition type. Accepted values: host, url_path, url_path_regex, http_user_agent, http_referer. Note: http_method is not currently supported by the Utho API."},
+			"value":           schema.StringAttribute{Required: true, Description: "ACL rule value as a JSON string. Format depends on condition_type: host: {\"host\": \"example.com\"}, url_path: {\"path\": \"/api\"}, url_path_regex: {\"regex\": \"/api/.*\"}, http_user_agent: {\"user_agent\": \"Mozilla\"}, http_referer: {\"referer\": \"example.com\"}."},
 		},
 	}
 }
