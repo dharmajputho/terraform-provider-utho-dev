@@ -158,8 +158,8 @@ terraform import utho_autoscaling.web <asg-id>
 | `minsize`          | String | Yes      | Minimum instances. Can be updated in place. |
 | `maxsize`          | String | Yes      | Maximum instances. Can be updated in place. |
 | `desiredsize`      | String | Yes      | Desired instances. Can be updated in place. |
-| `planid`           | String | Yes      | Plan ID. Changing forces new resource. |
-| `planname`         | String | Yes      | Plan slug. Changing forces new resource. |
+| `planid`           | String | Yes      | Plan ID for the instance size (e.g. `10404`). Use the `utho_cloud_plans` data source to find available plan IDs for your `dcslug`. Changing forces new resource. |
+| `planname`         | String | Yes      | Plan name label corresponding to `planid` (e.g. `basic`). This is a display label sent alongside `planid` — the API does not cross-validate them. Use the `name` field from `utho_cloud_plans` data source. Changing forces new resource. |
 | `os_disk_size`     | Number | Yes      | Disk size in GB. Changing forces new resource. |
 | `public_ip_enabled`| Number | Yes      | Enable public IP: `1` or `0`. |
 | `policies`         | List   | Yes      | Scaling policies. At least 1 required. |

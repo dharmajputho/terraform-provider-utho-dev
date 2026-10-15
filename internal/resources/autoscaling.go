@@ -154,8 +154,8 @@ func (r *AutoScalingResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"minsize":           schema.StringAttribute{Required: true, Description: "Minimum number of instances."},
 			"maxsize":           schema.StringAttribute{Required: true, Description: "Maximum number of instances."},
 			"desiredsize":       schema.StringAttribute{Required: true, Description: "Desired number of instances."},
-			"planid":            schema.StringAttribute{Required: true, Description: "Plan ID for instance size.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"planname":          schema.StringAttribute{Required: true, Description: "Plan slug (e.g. basic).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"planid":            schema.StringAttribute{Required: true, Description: "Plan ID for the instance size (e.g. 10404). Use the utho_cloud_plans data source to find available plan IDs for your dcslug.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"planname":          schema.StringAttribute{Required: true, Description: "Plan name or label corresponding to the planid (e.g. basic, standard). This is a display label sent to the API alongside planid — it does not need to match the planid exactly as the API does not cross-validate them. Use the name field from utho_cloud_plans data source.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"os_disk_size":      schema.Int64Attribute{Required: true, Description: "OS disk size in GB.", PlanModifiers: []planmodifier.Int64{int64planmodifier.RequiresReplace()}},
 			"public_ip_enabled": schema.Int64Attribute{Required: true, Description: "Enable public IP: 1 or 0."},
 
