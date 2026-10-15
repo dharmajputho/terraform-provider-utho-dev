@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 )
 
 // ══════════════════════════════════════════════════════════════
@@ -52,7 +52,7 @@ func (r *LoadBalancerResource) Schema(_ context.Context, _ resource.SchemaReques
 			"type":            schema.StringAttribute{Required: true, Description: "Load balancer type: network or application.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"dcslug":          schema.StringAttribute{Required: true, Description: "Data center slug.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"enable_publicip": schema.StringAttribute{Required: true, Description: "Enable public IP: true or false."},
-			"vpc":             schema.StringAttribute{Optional: true, Description: "Subnet ID to deploy the load balancer in.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"vpc":             schema.StringAttribute{Optional: true, Description: "Subnet ID (not VPC ID) to deploy the load balancer in. Despite the field name, this accepts a subnet UUID. The Utho API may return null for this field after creation — Terraform state retains the configured value.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 			"firewall":        schema.StringAttribute{Optional: true, Description: "Security group ID to attach.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 		},
 	}
