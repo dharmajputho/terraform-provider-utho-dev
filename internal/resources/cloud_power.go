@@ -3,13 +3,14 @@ package resources
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 )
 
 // ── Resource struct ───────────────────────────────────────────────────────
@@ -106,8 +107,37 @@ func (r *CloudPowerResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	// Poll until instance reaches expected power state (up to 10 minutes)
+	expectedStatus := powerActionExpectedStatus(plan.Action.ValueString())
+	if expectedStatus != "" {
+		for attempt := 0; attempt < 60; attempt++ {
+			time.Sleep(10 * time.Second)
+			cloud, err2 := r.client.GetCloud(plan.CloudID.ValueString())
+			if err2 != nil || cloud == nil {
+				continue
+			}
+			if cloud.PowerStatus == expectedStatus || cloud.Status == expectedStatus {
+				break
+			}
+		}
+	}
+
 	plan.ID = types.StringValue(plan.CloudID.ValueString())
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+// powerActionExpectedStatus maps a power action to the expected instance status after completion
+func powerActionExpectedStatus(action string) string {
+	switch action {
+	case "poweron":
+		return "Running"
+	case "poweroff":
+		return "Stopped"
+	case "hardreboot", "powercycle":
+		return "Running"
+	default:
+		return ""
+	}
 }
 
 // ── READ ──────────────────────────────────────────────────────────────────
