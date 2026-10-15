@@ -11,6 +11,8 @@ Creates and manages a fully managed database cluster on Utho. Supports MySQL, Po
 
 ~> **Note:** Database clusters take 4-10 minutes to provision. Terraform polls until the cluster is Active and all connection strings are available.
 
+-> **Required:** The `billing` argument is required and must be set to `hourly` or `monthly`. Omitting it will cause the plan to fail immediately.
+
 ## Example Usage
 
 ### MySQL cluster
