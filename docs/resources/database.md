@@ -85,6 +85,22 @@ resource "utho_database" "secured" {
 }
 ```
 
+### Connection and TLS guidance
+
+~> **Note:** Utho managed databases do not support SSL/TLS connections. Use `sslmode=disable` (PostgreSQL) or omit SSL flags (MySQL/MariaDB) when connecting. Using `sslmode=require` will result in `server does not support SSL` errors.
+
+Connect to PostgreSQL without SSL:
+
+```bash
+psql "host=<host> port=5432 dbname=defaultdb user=dbadmin sslmode=disable"
+```
+
+Connect to MySQL without SSL:
+
+```bash
+mysql -h <host> -P 3306 -u dbadmin -p defaultdb
+```
+
 ### Use connection string in app server
 
 ```hcl
