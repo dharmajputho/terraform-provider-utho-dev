@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/dharmajputho/terraform-provider-utho/internal/client"
 )
 
 // ══════════════════════════════════════════════════════════════
@@ -160,11 +160,11 @@ func (r *AutoScalingResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"public_ip_enabled": schema.Int64Attribute{Required: true, Description: "Enable public IP: 1 or 0."},
 
 			// Deployment source — at least one required (validated at Create)
-			"image_name": schema.StringAttribute{Optional: true, Description: "For stack deployment: set to the stack image slug (same as stackimage). For snapshot deployment: set to the snapshot name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"snapshotid": schema.StringAttribute{Optional: true, Description: "Snapshot ID for snapshot-based deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"stack":      schema.StringAttribute{Optional: true, Description: "Stack ID (same as stackid).", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"stackid":    schema.StringAttribute{Optional: true, Description: "Stack ID for stack-based deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
-			"stackimage": schema.StringAttribute{Optional: true, Description: "Stack image slug.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"image_name": schema.StringAttribute{Optional: true, Description: "Boot image name. For snapshot deployment: set to the snapshot name. For stack deployment: set to the stack image slug (same as stackimage). Required when using snapshot or stack deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"snapshotid": schema.StringAttribute{Optional: true, Description: "Snapshot ID for snapshot-based deployment. Use this OR stackid+stackimage — not both. When set, also set image_name to the snapshot name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"stack":      schema.StringAttribute{Optional: true, Description: "Stack slug (same as stackid). Use this with stackid and stackimage for stack-based deployment.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"stackid":    schema.StringAttribute{Optional: true, Description: "Stack ID for stack-based deployment. Use this OR snapshotid — not both. When set, also set stackimage and image_name.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
+			"stackimage": schema.StringAttribute{Optional: true, Description: "Stack image slug. Required when using stack-based deployment (stackid). Also set image_name to the same value.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
 
 			// Optional
 			"vpc":             schema.StringAttribute{Optional: true, Description: "VPC subnet ID.", PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()}},
